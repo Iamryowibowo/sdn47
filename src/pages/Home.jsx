@@ -11,7 +11,10 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { db } from "../config/firebase"; // Pastikan path ke file firebase.js Anda sudah benar
-
+import home1 from "../assets/images/HOME1.jpeg";
+import fotoKepsek from "../assets/images/KEPSEK.jpeg";
+// Sesuaikan path-nya relatif terhadap file .jsx kamu
+// Sesuaikan path-nya relatif terhadap file .jsx kamu
 gsap.registerPlugin(useGSAP);
 
 export default function Home() {
@@ -259,7 +262,7 @@ export default function Home() {
               <h1 className="text-5xl sm:text-7xl font-black tracking-tight leading-[1.05] text-slate-950">
                 <span className="gsap-title-line inline-block">Membentuk</span>{" "}
                 <br />
-                <span className="gsap-title-line inline-block bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                <span className="gsap-title-line inline-block bg-clip-text text-transparent bg-linear-to-r from-blue-600 to-indigo-600">
                   Generasi Cerdas &
                 </span>{" "}
                 <br />
@@ -303,7 +306,7 @@ export default function Home() {
             <div className="absolute inset-0 bg-blue-300 rounded-[40px] filter blur-2xl opacity-20 rotate-6 scale-95"></div>
             <div className="relative border-2 border-white bg-white p-3 rounded-[36px] shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-100 max-w-full">
               <img
-                src="/src/assets/images/HOME1.JPEG"
+                src={home1}
                 alt="Siswa Belajar"
                 className="rounded-[28px] object-cover max-md:h-95 h-100 w-full lg:w-150"
               />
@@ -357,14 +360,14 @@ export default function Home() {
         id="sambutan"
         className="relative z-10 py-24 px-4 sm:px-8 lg:px-20 max-w-6xl mx-auto"
       >
-        <div className="bg-white border border-slate-200/80 rounded-[32px] p-8 sm:p-12 lg:p-16 shadow-xl grid grid-cols-1 md:grid-cols-12 gap-12 items-center relative overflow-hidden">
+        <div className="bg-white border border-slate-200/80 rounded-4xl p-8 sm:p-12 lg:p-16 shadow-xl grid grid-cols-1 md:grid-cols-12 gap-12 items-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full filter blur-xl"></div>
 
           <div className="md:col-span-4 flex flex-col items-center text-center">
-            <div className="w-44 h-44 rounded-3xl bg-slate-100 overflow-hidden shadow-md p-2 bg-gradient-to-tr from-blue-100 to-indigo-100 border border-slate-200">
+            <div className="w-44 h-44 rounded-3xl bg-slate-100 overflow-hidden shadow-md p-2 bg-linear-to-tr from-blue-100 to-indigo-100 border border-slate-200">
               <img
-                src="/src/assets/images/KEPSEK.JPEG"
-                alt="Kepala Sekolah"
+                src={fotoKepsek}
+                alt="Kepala Sekolah SDN 47"
                 className="w-full h-full object-cover rounded-2xl"
               />
             </div>
@@ -498,14 +501,14 @@ export default function Home() {
                 key={item.id}
                 className={`tilt-card-light ${
                   index === 0 ? "md:col-span-7" : "md:col-span-5"
-                } bg-slate-100 rounded-3xl overflow-hidden shadow-md h-[300px] relative group`}
+                } bg-slate-100 rounded-3xl overflow-hidden shadow-md h-75 relative group`}
               >
                 <img
                   src={item.imageUrl}
                   alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-6 flex flex-col justify-end text-white">
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent p-6 flex flex-col justify-end text-white">
                   {/* Kategori dengan warna dinamis */}
                   <span
                     className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full w-max mb-2 uppercase ${getCategoryColor(
