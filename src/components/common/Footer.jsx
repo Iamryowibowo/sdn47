@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import sekolahLogoFooter from "../assets/images/logo.png";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -12,7 +13,7 @@ export default function Footer() {
             <div className="bg-primary flex items-center justify-center text-white p-2.5 rounded-xl shadow-md group-hover:scale-105 transition-transform">
               <img
                 className="size-9 object-contain"
-                src="./src/assets/logo.png"
+                src={sekolahLogoFooter}
                 alt="Logo Sekolah"
               />
             </div>

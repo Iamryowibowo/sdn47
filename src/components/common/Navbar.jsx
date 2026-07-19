@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Menu, User, X } from "lucide-react";
+import sekolahLogo from "../assets/images/logo.png";
 
 gsap.registerPlugin(useGSAP);
 
@@ -41,7 +42,7 @@ export default function Navbar() {
           <div className="bg-primary flex items-center justify-center text-white p-2.5 rounded-xl shadow-md group-hover:scale-105 transition-transform">
             <img
               className="size-9 object-contain"
-              src="./src/assets/logo.png"
+              src={sekolahLogo}
               alt="Logo Sekolah"
             />
           </div>
