@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Menu, User, X } from "lucide-react";
-import sekolahLogo from "../assets/images/logo.png";
+import sekolahLogo from "../../assets/logo.png"; // Sesuaikan path ini
 
 gsap.registerPlugin(useGSAP);
 

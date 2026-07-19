@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import sekolahLogoFooter from "../assets/images/logo.png";
+import sekolahLogoFooter from "../../assets/logo.png";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
