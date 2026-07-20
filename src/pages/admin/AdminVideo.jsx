@@ -87,7 +87,6 @@ export default function AdminVideo() {
         />
 
         <input
-          required
           type="url"
           placeholder="Link URL Thumbnail Image"
           className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
