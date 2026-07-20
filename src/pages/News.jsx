@@ -223,7 +223,7 @@ export default function News() {
                     ⭐ {featuredNews.category || "Berita Utama"}
                   </span>
                 </div>
-                <div className="p-6 sm:p-8 space-y-4 flex-grow flex flex-col justify-between">
+                <div className="p-6 sm:p-8 space-y-4 grow flex flex-col justify-between">
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-slate-400 flex items-center gap-2">
                       <span>📅 {featuredNews.dateString}</span>
@@ -282,16 +282,24 @@ export default function News() {
                     </div>
 
                     <div className="aspect-video bg-slate-900 rounded-2xl border border-slate-800 my-6 overflow-hidden">
-                      <iframe
-                        className="w-full h-full"
-                        src={`https://www.youtube.com/embed/${
-                          videosList[0].videoUrl.includes("youtu.be")
-                            ? videosList[0].videoUrl.split("/").pop()
-                            : videosList[0].videoUrl.split("v=")[1]
-                        }`}
-                        allowFullScreen
-                        title="Featured Video"
-                      />
+                      {videosList[0].videoUrl ? (
+                        <iframe
+                          className="w-full h-full"
+                          src={`https://www.youtube.com/embed/${
+                            videosList[0].videoUrl.includes("youtu.be")
+                              ? videosList[0].videoUrl.split("/").pop()
+                              : videosList[0].videoUrl.split("v=")[1]
+                          }`}
+                          allowFullScreen
+                          title="Featured Video"
+                        />
+                      ) : (
+                        <img
+                          src={videosList[0].thumbnailUrl}
+                          className="w-full h-full object-cover"
+                          alt="Featured Thumbnail"
+                        />
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -308,7 +316,7 @@ export default function News() {
                         Video Pembelajaran
                       </h4>
                       <Link
-                        to="/videos" // Pastikan path ini sudah ada di App.js
+                        to="/videos"
                         className="text-[10px] font-bold text-blue-600 hover:underline"
                       >
                         LIHAT SEMUA →
@@ -318,9 +326,12 @@ export default function News() {
                     <div className="space-y-4">
                       {/* Mengambil indeks 1 dan 2 saja (total 2 video) */}
                       {videosList.slice(1, 3).map((vid) => {
-                        const videoId = vid.videoUrl.includes("youtu.be")
-                          ? vid.videoUrl.split("/").pop()
-                          : vid.videoUrl.split("v=")[1];
+                        const videoId =
+                          vid.videoUrl && vid.videoUrl.includes("youtu.be")
+                            ? vid.videoUrl.split("/").pop()
+                            : vid.videoUrl
+                              ? vid.videoUrl.split("v=")[1]
+                              : "";
 
                         return (
                           <div
@@ -328,7 +339,10 @@ export default function News() {
                             className="flex gap-4 items-center group bg-slate-50 p-3 rounded-2xl border border-slate-100"
                           >
                             <img
-                              src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+                              src={
+                                vid.thumbnailUrl ||
+                                `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+                              }
                               className="w-16 h-12 rounded-lg object-cover"
                               alt="thumbnail"
                             />
@@ -337,14 +351,16 @@ export default function News() {
                                 {vid.title}
                               </h5>
                               <div className="flex gap-3 mt-1.5">
-                                <a
-                                  href={vid.videoUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-[9px] text-blue-600 font-bold hover:underline"
-                                >
-                                  WATCH
-                                </a>
+                                {vid.videoUrl && (
+                                  <a
+                                    href={vid.videoUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[9px] text-blue-600 font-bold hover:underline"
+                                  >
+                                    WATCH
+                                  </a>
+                                )}
                                 {vid.downloadUrl && (
                                   <a
                                     href={vid.downloadUrl}
@@ -436,7 +452,7 @@ export default function News() {
                     })}
                   </div>
                 ) : (
-                  <div className="gsap-empty-state opacity-0 bg-white border border-dashed border-slate-300 rounded-[32px] p-10 flex flex-col items-center justify-center text-center space-y-3 shadow-sm">
+                  <div className="gsap-empty-state opacity-0 bg-white border border-dashed border-slate-300 rounded-4xl p-10 flex flex-col items-center justify-center text-center space-y-3 shadow-sm">
                     <span className="text-4xl">📭</span>
                     <div>
                       <h4 className="font-bold text-slate-900">
