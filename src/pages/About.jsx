@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import kepsek from "../assets/images/KEPSEK.jpeg";
 
 // Register ScrollTrigger untuk efek Parallax
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -183,7 +184,7 @@ export default function About() {
           <div className="md:col-span-4 flex flex-col items-center text-center sticky top-28">
             <div className="w-48 h-56 rounded-3xl bg-slate-100 overflow-hidden shadow-md p-2 bg-linear-to-tr from-blue-100 to-indigo-200 border border-slate-200 transform -rotate-1 hover:rotate-0 transition-transform duration-300">
               <img
-                src="/src/assets/images/KEPSEK.JPEG"
+                src={kepsek}
                 alt="Kepala Sekolah SDN 47"
                 className="w-full h-full object-cover rounded-2xl"
               />
