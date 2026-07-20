@@ -3,7 +3,9 @@ import {
   Routes,
   Route,
   Outlet,
+  useLocation,
 } from "react-router-dom";
+import { useEffect } from "react";
 
 // Impor Halaman Publik
 import Home from "./pages/Home";
@@ -19,6 +21,15 @@ import Footer from "./components/common/Footer";
 import TeacherStaff from "./pages/Teachers-Staff";
 import NewsDetail from "./pages/NewsDetail";
 import VideosPage from "./pages/Videos";
+
+// Komponen Otomatis Scroll ke Atas saat Pindah Page
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 // Pembungkus khusus halaman utama sekolah (Pakai Navbar & Footer)
 function PublicLayout() {
@@ -37,6 +48,7 @@ function PublicLayout() {
 export default function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         {/* KELOMPOK 1: Semua halaman sekolah yang butuh Navbar & Footer */}
         <Route element={<PublicLayout />}>
