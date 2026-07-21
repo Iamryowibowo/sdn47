@@ -479,7 +479,7 @@ export default function News() {
                       key={agenda.id}
                       className="gsap-agenda-item opacity-0 flex items-center gap-5 border-b border-slate-100 last:border-b-0 pb-5 last:pb-0 group"
                     >
-                      <div className="w-16 h-16 bg-linear-to-b from-slate-900 to-slate-950 text-white rounded-2xl flex flex-col items-center justify-center flex-shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                      <div className="w-16 h-16 bg-linear-to-b from-slate-900 to-slate-950 text-white rounded-2xl flex flex-col items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
                         <span className="text-xl font-black tracking-tight leading-none">
                           {agenda.date}
                         </span>
