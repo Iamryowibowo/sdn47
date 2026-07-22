@@ -207,12 +207,12 @@ export default function NewsDetail() {
 
             {/* Tombol Share & Kembali */}
             <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <button
-                onClick={() => window.history.back()}
+              <Link
+                to="/news"
                 className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-2"
               >
-                <span>←</span> Kembali
-              </button>
+                <span>←</span> Kembali ke Berita
+              </Link>
 
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <span className="text-xs font-bold text-slate-400 mr-1 hidden sm:inline">
