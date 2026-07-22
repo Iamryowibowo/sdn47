@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   doc,
@@ -13,6 +13,10 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { toast } from "react-hot-toast";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 // Fungsi Helper untuk Badge Kategori
 const getCategoryBadge = (category) => {
@@ -58,6 +62,7 @@ const getCategoryBadge = (category) => {
 
 export default function NewsDetail() {
   const { id } = useParams();
+  const containerRef = useRef();
   const [news, setNews] = useState(null);
   const [otherNews, setOtherNews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,31 +76,25 @@ export default function NewsDetail() {
 
         if (docSnap.exists()) {
           const newsData = docSnap.data();
-          // Cek jika field views belum ada di database, anggap 0
           const currentViews =
             typeof newsData.views === "number" ? newsData.views : 0;
 
           setNews({ id: docSnap.id, ...newsData, views: currentViews });
 
-          // Cek localStorage apakah device ini sudah pernah melihat berita ini
           const viewedKey = `viewed_news_${id}`;
           const hasViewed = localStorage.getItem(viewedKey);
 
           if (!hasViewed) {
-            // Update increment views ke Firestore secara otomatis
             await updateDoc(docRef, {
               views: increment(1),
             });
             localStorage.setItem(viewedKey, "true");
-
-            // Update state lokal langsung agar naik angkanya tanpa refresh
             setNews((prev) => ({ ...prev, views: currentViews + 1 }));
           }
         } else {
           console.log("Berita tidak ditemukan!");
         }
 
-        // Ambil berita lainnya untuk sidebar
         const q = query(
           collection(db, "news"),
           orderBy("createdAt", "desc"),
@@ -118,6 +117,31 @@ export default function NewsDetail() {
     window.scrollTo(0, 0);
   }, [id]);
 
+  // LOGIKA GSAP ANIMASI MASUK
+  useGSAP(
+    () => {
+      if (loading) return;
+
+      const tl = gsap.timeline();
+
+      // Animasi Konten Utama di Kiri
+      tl.fromTo(
+        ".gsap-news-content",
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" },
+      );
+
+      // Animasi Sidebar di Kanan secara berurutan (stagger)
+      tl.fromTo(
+        ".gsap-sidebar-item",
+        { opacity: 0, x: 20 },
+        { opacity: 1, x: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" },
+        "-=0.4",
+      );
+    },
+    { scope: containerRef, dependencies: [loading, news] },
+  );
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     toast.success("Tautan berita berhasil disalin!");
@@ -139,11 +163,14 @@ export default function NewsDetail() {
   const badge = getCategoryBadge(news.category);
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pt-32 pb-24 px-4 sm:px-6 lg:px-8">
+    <div
+      ref={containerRef}
+      className="min-h-screen bg-slate-50/50 pt-8 pb-24 px-4 sm:px-6 lg:px-8"
+    >
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* KOLOM KIRI: KONTEN UTAMA */}
-          <div className="lg:col-span-8 bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
+          <div className="lg:col-span-8 gsap-news-content opacity-0 bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
             <div className="space-y-3">
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border ${badge.color}`}
@@ -183,7 +210,7 @@ export default function NewsDetail() {
                 <img
                   src={news.imageUrl}
                   alt={news.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover hover:scale-102 transition-transform duration-500"
                 />
               </div>
             )}
@@ -246,7 +273,7 @@ export default function NewsDetail() {
 
           {/* KOLOM KANAN: SIDEBAR BERITA LAINNYA */}
           <div className="lg:col-span-4 space-y-6 sticky top-28">
-            <div className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-sm space-y-5">
+            <div className="gsap-sidebar-item opacity-0 bg-white border border-slate-200/80 p-5 rounded-3xl shadow-sm space-y-5">
               <div className="border-b border-slate-100 pb-3">
                 <h3 className="font-black text-slate-950 uppercase tracking-tight text-sm flex items-center gap-2">
                   <span>🔥</span> Berita Lainnya
@@ -264,7 +291,7 @@ export default function NewsDetail() {
                       <Link
                         to={`/news/${item.id}`}
                         key={item.id}
-                        className={`flex items-center gap-3 group p-2 rounded-2xl hover:bg-slate-50 transition-all ${
+                        className={`gsap-sidebar-item flex items-center gap-3 group p-2 rounded-2xl hover:bg-slate-50 transition-all ${
                           index !== otherNews.length - 1
                             ? "border-b border-slate-50 pb-3"
                             : ""
