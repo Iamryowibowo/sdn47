@@ -31,6 +31,24 @@ const getCategoryBadge = (category) => {
         color:
           "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 backdrop-blur-md",
       };
+    case "AKADEMIK":
+      return {
+        icon: "📚",
+        color:
+          "bg-indigo-500/10 text-indigo-700 border-indigo-500/20 backdrop-blur-md",
+      };
+    case "EKSTRAKURIKULER":
+      return {
+        icon: "⚽",
+        color:
+          "bg-purple-500/10 text-purple-700 border-purple-500/20 backdrop-blur-md",
+      };
+    case "ARTIKEL":
+      return {
+        icon: "✍️",
+        color:
+          "bg-rose-500/10 text-rose-700 border-rose-500/20 backdrop-blur-md",
+      };
     default:
       return {
         icon: "📌",

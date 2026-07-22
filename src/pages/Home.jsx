@@ -17,6 +17,46 @@ import fotoKepsek from "../assets/images/KEPSEK.jpeg";
 // Sesuaikan path-nya relatif terhadap file .jsx kamu
 gsap.registerPlugin(useGSAP);
 
+const getCategoryBadge = (category) => {
+  const cat = category?.toUpperCase();
+  switch (cat) {
+    case "PRESTASI":
+      return {
+        icon: "⭐",
+        color: "bg-amber-500/10 text-amber-700 border-amber-500/20",
+      };
+    case "PENGUMUMAN":
+      return {
+        icon: "📢",
+        color: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+      };
+    case "KEGIATAN":
+      return {
+        icon: "🏆",
+        color: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
+      };
+    case "AKADEMIK":
+      return {
+        icon: "📚",
+        color: "bg-indigo-500/10 text-indigo-700 border-indigo-500/20",
+      };
+    case "EKSTRAKURIKULER":
+      return {
+        icon: "⚽",
+        color: "bg-purple-500/10 text-purple-700 border-purple-500/20",
+      };
+    case "ARTIKEL":
+      return {
+        icon: "✍️",
+        color: "bg-rose-500/10 text-rose-700 border-rose-500/20",
+      };
+    default:
+      return {
+        icon: "📰",
+        color: "bg-slate-500/10 text-slate-700 border-slate-500/20",
+      };
+  }
+};
 export default function Home() {
   const containerRef = useRef();
   const canvasRef = useRef();
@@ -550,34 +590,42 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {newsList.map((news) => (
-            <Link
-              to={`/news/${news.id}`}
-              key={news.id}
-              className="block bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 group"
-            >
-              <article>
-                <div className="h-44 bg-slate-200 overflow-hidden">
-                  <img
-                    src={news.imageUrl}
-                    alt={news.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-                <div className="p-6 space-y-2">
-                  <span
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-md uppercase inline-block ${getCategoryColor(news.category)}`}
-                  >
-                    {news.category || "Berita"}
-                  </span>
-                  <h3 className="font-bold text-base text-slate-950 group-hover:text-blue-600 transition-colors line-clamp-2">
-                    {news.title}
-                  </h3>
-                  <p className="text-slate-400 text-xs">{news.dateString}</p>
-                </div>
-              </article>
-            </Link>
-          ))}
+          {newsList.map((news) => {
+            // Ambil badge menggunakan fungsi helper kita
+            const badge = getCategoryBadge(news.category);
+
+            return (
+              <Link
+                to={`/news/${news.id}`}
+                key={news.id}
+                className="block bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 group"
+              >
+                <article>
+                  <div className="h-44 bg-slate-200 overflow-hidden">
+                    <img
+                      src={news.imageUrl}
+                      alt={news.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="p-6 space-y-2">
+                    {/* Badge dengan Ikon & Warna Dinamis */}
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase border ${badge.color}`}
+                    >
+                      <span>{badge.icon}</span>
+                      <span>{news.category || "Berita"}</span>
+                    </span>
+
+                    <h3 className="font-bold text-base text-slate-950 group-hover:text-blue-600 transition-colors line-clamp-2">
+                      {news.title}
+                    </h3>
+                    <p className="text-slate-400 text-xs">{news.dateString}</p>
+                  </div>
+                </article>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

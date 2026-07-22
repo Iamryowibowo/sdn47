@@ -102,7 +102,7 @@ export default function AdminNews() {
               type="text"
               placeholder="Judul Berita..."
               required
-              className="w-full p-4 rounded-xl border border-slate-200"
+              className="w-full p-4 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-600"
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
@@ -111,24 +111,30 @@ export default function AdminNews() {
               rows="6"
               placeholder="Isi berita..."
               required
-              className="w-full p-4 rounded-xl border border-slate-200"
+              className="w-full p-4 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-600"
               onChange={(e) =>
                 setFormData({ ...formData, content: e.target.value })
               }
             />
           </div>
 
-          {/* Kolom Kanan (Upload) */}
+          {/* Kolom Kanan (Upload & Kategori) */}
           <div className="space-y-5">
+            {/* Pilihan Kategori Berita yang Diperluas */}
             <select
-              className="w-full p-4 rounded-xl border border-slate-200 font-bold"
+              className="w-full p-4 rounded-xl border border-slate-200 font-bold bg-white focus:outline-none focus:border-blue-600"
+              value={formData.category}
               onChange={(e) =>
                 setFormData({ ...formData, category: e.target.value })
               }
             >
-              <option value="PENGUMUMAN">PENGUMUMAN</option>
-              <option value="KEGIATAN">KEGIATAN</option>
-              <option value="PRESTASI">PRESTASI</option>
+              <option value="PENGUMUMAN">📢 Pengumuman</option>
+              <option value="KEGIATAN">🏆 Kegiatan Sekolah</option>
+              <option value="PRESTASI">⭐ Prestasi Siswa</option>
+              <option value="AKADEMIK">📚 Akademik & Kurikulum</option>
+              <option value="EKSTRAKURIKULER">⚽ Ekstrakurikuler</option>
+              <option value="ARTIKEL">✍️ Artikel & Opini</option>
+              <option value="BERITA">📰 Berita Umum</option>
             </select>
 
             <div
@@ -138,11 +144,13 @@ export default function AdminNews() {
               {preview ? (
                 <img
                   src={preview}
+                  alt="Preview"
                   className="rounded-xl w-full h-40 object-cover"
                 />
               ) : (
-                <p className="py-8 text-slate-400">
-                  Klik pilih foto (otomatis dikompres)
+                <p className="py-8 text-slate-400 text-sm">
+                  Klik pilih foto <br />
+                  (otomatis dikompres)
                 </p>
               )}
               <input
@@ -156,7 +164,7 @@ export default function AdminNews() {
 
             <button
               disabled={loading}
-              className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700"
+              className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:bg-blue-300"
             >
               {loading ? "Menyimpan..." : "Terbitkan"}
             </button>
