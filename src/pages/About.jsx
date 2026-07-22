@@ -371,7 +371,7 @@ export default function About() {
 
           <div className="flex flex-col lg:flex-row items-center justify-center gap-16">
             {/* Roda Interaktif (Circular Slider) */}
-            <div className="relative flex-shrink-0 w-[360px] h-[360px] sm:w-[420px] sm:h-[420px] flex items-center justify-center">
+            <div className="relative shrink-0 w-90 h-90 sm:w-105 sm:h-105 flex items-center justify-center">
               {/* Pusat Lingkaran Info */}
               <div className="absolute w-32 h-32 rounded-full bg-white shadow-xl z-20 flex flex-col items-center justify-center text-center p-2 border-4 border-indigo-100">
                 <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">

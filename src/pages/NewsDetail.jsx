@@ -3,6 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import {
   doc,
   getDoc,
+  updateDoc,
+  increment,
   collection,
   getDocs,
   query,
@@ -39,7 +41,7 @@ const getCategoryBadge = (category) => {
     case "EKSTRAKURIKULER":
       return {
         icon: "⚽",
-        color: "bg-purple-50text-purple-700 border-purple-200",
+        color: "bg-purple-50 text-purple-700 border-purple-200",
       };
     case "ARTIKEL":
       return {
@@ -68,11 +70,32 @@ export default function NewsDetail() {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setNews({ id: docSnap.id, ...docSnap.data() });
+          const newsData = docSnap.data();
+          // Cek jika field views belum ada di database, anggap 0
+          const currentViews =
+            typeof newsData.views === "number" ? newsData.views : 0;
+
+          setNews({ id: docSnap.id, ...newsData, views: currentViews });
+
+          // Cek localStorage apakah device ini sudah pernah melihat berita ini
+          const viewedKey = `viewed_news_${id}`;
+          const hasViewed = localStorage.getItem(viewedKey);
+
+          if (!hasViewed) {
+            // Update increment views ke Firestore secara otomatis
+            await updateDoc(docRef, {
+              views: increment(1),
+            });
+            localStorage.setItem(viewedKey, "true");
+
+            // Update state lokal langsung agar naik angkanya tanpa refresh
+            setNews((prev) => ({ ...prev, views: currentViews + 1 }));
+          }
         } else {
           console.log("Berita tidak ditemukan!");
         }
 
+        // Ambil berita lainnya untuk sidebar
         const q = query(
           collection(db, "news"),
           orderBy("createdAt", "desc"),
@@ -118,41 +141,45 @@ export default function NewsDetail() {
   return (
     <div className="min-h-screen bg-slate-50/50 pt-32 pb-24 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Layout Utama Grid: Kiri Konten, Kanan Sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          {/* ================= KOLOM KIRI: KONTEN UTAMA ================= */}
-          <div className="lg:col-span-8 bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-10 shadow-sm space-y-8">
-            {/* Header Berita */}
-            <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* KOLOM KIRI: KONTEN UTAMA */}
+          <div className="lg:col-span-8 bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
+            <div className="space-y-3">
               <span
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-extrabold tracking-wider uppercase border ${badge.color}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border ${badge.color}`}
               >
                 <span>{badge.icon}</span>
                 <span>{news.category || "Berita Sekolah"}</span>
               </span>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-950 leading-tight tracking-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 leading-snug tracking-tight">
                 {news.title}
               </h1>
 
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 pt-2 border-t border-slate-100">
-                <span>Dipublikasikan pada</span>
-                <span>•</span>
-                <span>
-                  {news.createdAt?.toDate
-                    ? news.createdAt.toDate().toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })
-                    : "Baru saja"}
-                </span>
+              {/* Info Tanggal & Views */}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-slate-400 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-2">
+                  <span>Dipublikasikan pada</span>
+                  <span>•</span>
+                  <span>
+                    {news.createdAt?.toDate
+                      ? news.createdAt.toDate().toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : "Baru saja"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-slate-500 font-semibold bg-slate-100 px-3 py-1 rounded-full">
+                  <span>👁️</span>
+                  <span>{news.views || 0} Dilihat</span>
+                </div>
               </div>
             </div>
 
-            {/* Gambar Utama */}
             {news.imageUrl && (
-              <div className="w-full h-72 sm:h-[420px] rounded-2xl overflow-hidden shadow-md bg-slate-100">
+              <div className="w-full h-64 sm:h-95 rounded-2xl overflow-hidden shadow-sm bg-slate-100">
                 <img
                   src={news.imageUrl}
                   alt={news.title}
@@ -161,30 +188,41 @@ export default function NewsDetail() {
               </div>
             )}
 
-            {/* Isi Konten Berita */}
-            <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed font-normal text-base sm:text-lg">
-              <p className="whitespace-pre-line">{news.content}</p>
+            {/* Isi Konten Berita (Pecah Paragraf Otomatis) */}
+            <div className="text-slate-700 leading-relaxed font-normal text-justify sm:text-lg space-y-4">
+              {news.content
+                .split(/(?<=[.!?])\s+/)
+                .reduce((acc, sentence, index) => {
+                  const paragraphIndex = Math.floor(index / 3);
+                  if (!acc[paragraphIndex]) acc[paragraphIndex] = [];
+                  acc[paragraphIndex].push(sentence);
+                  return acc;
+                }, [])
+                .map((paragraphSentences, idx) => (
+                  <p key={idx} className="leading-relaxed">
+                    {paragraphSentences.join(" ")}
+                  </p>
+                ))}
             </div>
 
-            {/* Bagian Bagikan / Share & Tombol Kembali */}
-            <div className="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Tombol Share & Kembali */}
+            <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
               <button
                 onClick={() => window.history.back()}
-                className="w-full sm:w-auto px-6 py-3 bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-2"
               >
                 <span>←</span> Kembali
               </button>
 
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <span className="text-xs font-bold text-slate-400 mr-2 hidden sm:inline">
+                <span className="text-xs font-bold text-slate-400 mr-1 hidden sm:inline">
                   Bagikan:
                 </span>
                 <a
                   href={`https://api.whatsapp.com/send?text=${encodeURIComponent(news.title + " - " + window.location.href)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-xl text-xs font-bold transition-all border border-emerald-200"
-                  title="Bagikan ke WhatsApp"
+                  className="px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-xl text-xs font-bold transition-all border border-emerald-200"
                 >
                   💬 WhatsApp
                 </a>
@@ -192,15 +230,13 @@ export default function NewsDetail() {
                   href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl text-xs font-bold transition-all border border-blue-200"
-                  title="Bagikan ke Facebook"
+                  className="px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl text-xs font-bold transition-all border border-blue-200"
                 >
                   📘 Facebook
                 </a>
                 <button
                   onClick={handleCopyLink}
-                  className="px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-200"
-                  title="Salin Tautan"
+                  className="px-3 py-2 bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-200"
                 >
                   🔗 Salin Link
                 </button>
@@ -208,10 +244,10 @@ export default function NewsDetail() {
             </div>
           </div>
 
-          {/* ================= KOLOM KANAN: SIDEBAR BERITA LAINNYA ================= */}
+          {/* KOLOM KANAN: SIDEBAR BERITA LAINNYA */}
           <div className="lg:col-span-4 space-y-6 sticky top-28">
-            <div className="bg-white border border-slate-200/80 p-6 rounded-3xl shadow-sm space-y-6">
-              <div className="border-b border-slate-100 pb-4">
+            <div className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-sm space-y-5">
+              <div className="border-b border-slate-100 pb-3">
                 <h3 className="font-black text-slate-950 uppercase tracking-tight text-sm flex items-center gap-2">
                   <span>🔥</span> Berita Lainnya
                 </h3>
@@ -220,7 +256,7 @@ export default function NewsDetail() {
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {otherNews.length > 0 ? (
                   otherNews.map((item, index) => {
                     const itemBadge = getCategoryBadge(item.category);
@@ -228,14 +264,14 @@ export default function NewsDetail() {
                       <Link
                         to={`/news/${item.id}`}
                         key={item.id}
-                        className={`flex items-center gap-3.5 group p-2 rounded-2xl hover:bg-slate-50 transition-all ${
+                        className={`flex items-center gap-3 group p-2 rounded-2xl hover:bg-slate-50 transition-all ${
                           index !== otherNews.length - 1
-                            ? "border-b border-slate-50 pb-4"
+                            ? "border-b border-slate-50 pb-3"
                             : ""
                         }`}
                       >
                         {item.imageUrl && (
-                          <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100 border border-slate-200/60">
+                          <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-slate-100 border border-slate-200/60">
                             <img
                               src={item.imageUrl}
                               alt={item.title}
@@ -243,7 +279,7 @@ export default function NewsDetail() {
                             />
                           </div>
                         )}
-                        <div className="space-y-1.5 overflow-hidden">
+                        <div className="space-y-1 overflow-hidden">
                           <span
                             className={`text-[9px] font-bold px-2 py-0.5 rounded-md inline-block border uppercase ${itemBadge.color}`}
                           >

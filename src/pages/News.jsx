@@ -94,15 +94,16 @@ export default function News() {
   const [loading, setLoading] = useState(true);
   const formatter = buildFormatter(idStrings);
   const [videosList, setVideosList] = useState([]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch Berita (seperti sebelumnya)
+        // Fetch Berita
         const q = query(collection(db, "news"), orderBy("createdAt", "desc"));
         const snap = await getDocs(q);
         setNewsList(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
 
-        // Tambahan: Fetch Video (Koleksi baru di Firestore bernama "videos")
+        // Fetch Video
         const vidQ = query(
           collection(db, "videos"),
           orderBy("createdAt", "desc"),
@@ -120,35 +121,15 @@ export default function News() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        const q = query(collection(db, "news"), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
-        const data = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setNewsList(data);
-      } catch (err) {
-        console.error("Gagal ambil berita:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNews();
-  }, []);
-
   const featuredNews = newsList[0] || null;
   const regularNews = newsList.slice(1);
 
-  // LOGIKA GSAP YANG SUDAH DIREVISI (ANTI-INVISIBLE BUG)
+  // LOGIKA GSAP
   useGSAP(
     () => {
       if (loading) return;
       const tl = gsap.timeline();
 
-      // Menggunakan fromTo untuk memaksa elemen terlihat (opacity: 1) di akhir animasi
       tl.fromTo(
         ".gsap-news-header",
         { opacity: 0, y: -20 },
@@ -261,10 +242,13 @@ export default function News() {
                     <h2 className="text-xl sm:text-2xl font-black text-slate-950 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
                       {featuredNews.title}
                     </h2>
-                    <p className="text-slate-600 text-xs sm:text-sm font-light leading-relaxed line-clamp-3">
+
+                    {/* Ringkasan Konten yang Dipecah Rapi (Line-clamp 3) */}
+                    <div className="text-slate-600 text-xs sm:text-sm font-light leading-relaxed line-clamp-3 space-y-2">
                       {featuredNews.content}
-                    </p>
+                    </div>
                   </div>
+
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold">
                     <Link
                       to={`/news/${featuredNews.id}`}
@@ -280,11 +264,7 @@ export default function News() {
               </div>
 
               {/* KANAN: Video Berita Terkini */}
-              {/* KANAN: Video Section (Diupdate agar independen dari berita) */}
-              {/* KANAN: Video Section (Independen dengan list dummy) */}
-              {/* KANAN: Video Section (Independen & Icon Sinyal Kembali) */}
               <div className="lg:col-span-5 space-y-6">
-                {/* Video Utama (Featured Video) */}
                 {videosList.length > 0 ? (
                   <div className="bg-slate-950 rounded-4xl p-6 sm:p-8 text-white shadow-xl border border-slate-800 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full filter blur-2xl pointer-events-none"></div>
@@ -326,7 +306,7 @@ export default function News() {
                   </div>
                 )}
 
-                {/* Daftar Video Pembelajaran (Hanya 2 video saja) */}
+                {/* Daftar Video Pembelajaran */}
                 {videosList.length > 1 && (
                   <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
                     <div className="flex justify-between items-center mb-4">
@@ -342,7 +322,6 @@ export default function News() {
                     </div>
 
                     <div className="space-y-4">
-                      {/* Mengambil indeks 1 dan 2 saja (total 2 video) */}
                       {videosList.slice(1, 3).map((vid) => {
                         const videoId =
                           vid.videoUrl && vid.videoUrl.includes("youtu.be")
