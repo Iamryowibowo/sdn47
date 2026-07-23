@@ -218,11 +218,25 @@ export default function News() {
                   {featuredNews.videoUrl ? (
                     <iframe
                       className="w-full h-full object-cover"
-                      src={`https://www.youtube.com/embed/${
-                        featuredNews.videoUrl.includes("youtu.be")
-                          ? featuredNews.videoUrl.split("/").pop()
-                          : featuredNews.videoUrl.split("v=")[1]
-                      }`}
+                      src={
+                        featuredNews.videoUrl.includes("drive.google.com")
+                          ? featuredNews.videoUrl
+                              .replace("/view?usp=sharing", "/preview")
+                              .replace("/view", "/preview")
+                          : `https://www.youtube.com/embed/${
+                              featuredNews.videoUrl.includes("youtu.be")
+                                ? featuredNews.videoUrl
+                                    .split("/")
+                                    .pop()
+                                    .split("?")[0]
+                                : featuredNews.videoUrl.includes("watch?v=")
+                                  ? featuredNews.videoUrl
+                                      .split("watch?v=")[1]
+                                      .split("&")[0]
+                                  : featuredNews.videoUrl.split("/").pop()
+                            }`
+                      }
+                      allow="autoplay; encrypted-media"
                       allowFullScreen
                       title={featuredNews.title}
                     />
