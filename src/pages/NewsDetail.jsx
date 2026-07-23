@@ -12,53 +12,12 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { getCategoryBadge } from "../utils/categoryHelper";
 import { toast } from "react-hot-toast";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(useGSAP);
-
-// Fungsi Helper untuk Badge Kategori
-const getCategoryBadge = (category) => {
-  const cat = category?.toUpperCase();
-  switch (cat) {
-    case "PRESTASI":
-      return {
-        icon: "⭐",
-        color: "bg-amber-50 text-amber-700 border-amber-200",
-      };
-    case "PENGUMUMAN":
-      return {
-        icon: "📢",
-        color: "bg-blue-50 text-blue-700 border-blue-200",
-      };
-    case "KEGIATAN":
-      return {
-        icon: "🏆",
-        color: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      };
-    case "AKADEMIK":
-      return {
-        icon: "📚",
-        color: "bg-indigo-50 text-indigo-700 border-indigo-200",
-      };
-    case "EKSTRAKURIKULER":
-      return {
-        icon: "⚽",
-        color: "bg-purple-50 text-purple-700 border-purple-200",
-      };
-    case "ARTIKEL":
-      return {
-        icon: "✍️",
-        color: "bg-rose-50 text-rose-700 border-rose-200",
-      };
-    default:
-      return {
-        icon: "📰",
-        color: "bg-slate-100 text-slate-700 border-slate-200",
-      };
-  }
-};
 
 export default function NewsDetail() {
   const { id } = useParams();
@@ -160,7 +119,8 @@ export default function NewsDetail() {
       </div>
     );
 
-  const badge = getCategoryBadge(news.category);
+  const categoryName = news.kategori || news.category || "Berita Sekolah";
+  const badge = getCategoryBadge(categoryName);
 
   return (
     <div
@@ -176,7 +136,7 @@ export default function NewsDetail() {
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border ${badge.color}`}
               >
                 <span>{badge.icon}</span>
-                <span>{news.category || "Berita Sekolah"}</span>
+                <span>{categoryName}</span>
               </span>
 
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 leading-snug tracking-tight">
@@ -307,7 +267,8 @@ export default function NewsDetail() {
               <div className="space-y-3">
                 {otherNews.length > 0 ? (
                   otherNews.map((item, index) => {
-                    const itemBadge = getCategoryBadge(item.category);
+                    const itemCat = item.kategori || item.category || "Berita";
+                    const itemBadge = getCategoryBadge(itemCat);
                     return (
                       <Link
                         to={`/news/${item.id}`}
@@ -331,7 +292,7 @@ export default function NewsDetail() {
                           <span
                             className={`text-[9px] font-bold px-2 py-0.5 rounded-md inline-block border uppercase ${itemBadge.color}`}
                           >
-                            {item.category || "Berita"}
+                            {itemCat}
                           </span>
                           <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
                             {item.title}

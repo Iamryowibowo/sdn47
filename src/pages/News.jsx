@@ -7,56 +7,9 @@ import { useGSAP } from "@gsap/react";
 import TimeAgo from "react-timeago";
 import idStrings from "react-timeago/lib/language-strings/id";
 import buildFormatter from "react-timeago/lib/formatters/buildFormatter";
+import { getCategoryBadge } from "../utils/categoryHelper";
 
 gsap.registerPlugin(useGSAP);
-
-const getCategoryBadge = (category) => {
-  const cat = category?.toUpperCase();
-  switch (cat) {
-    case "PRESTASI":
-      return {
-        icon: "🏆",
-        color:
-          "bg-amber-500/10 text-amber-700 border-amber-500/20 backdrop-blur-md",
-      };
-    case "PENGUMUMAN":
-      return {
-        icon: "📢",
-        color:
-          "bg-blue-500/10 text-blue-700 border-blue-500/20 backdrop-blur-md",
-      };
-    case "KEGIATAN":
-      return {
-        icon: "📅",
-        color:
-          "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 backdrop-blur-md",
-      };
-    case "AKADEMIK":
-      return {
-        icon: "📚",
-        color:
-          "bg-indigo-500/10 text-indigo-700 border-indigo-500/20 backdrop-blur-md",
-      };
-    case "EKSTRAKURIKULER":
-      return {
-        icon: "⚽",
-        color:
-          "bg-purple-500/10 text-purple-700 border-purple-500/20 backdrop-blur-md",
-      };
-    case "ARTIKEL":
-      return {
-        icon: "✍️",
-        color:
-          "bg-rose-500/10 text-rose-700 border-rose-500/20 backdrop-blur-md",
-      };
-    default:
-      return {
-        icon: "📌",
-        color:
-          "bg-slate-500/10 text-slate-700 border-slate-500/20 backdrop-blur-md",
-      };
-  }
-};
 
 const UPCOMING_AGENDAS = [
   {
@@ -211,9 +164,8 @@ export default function News() {
           <>
             {/* SECTION 2: TOP SPOTLIGHT (BERITA UTAMA & VIDEO) */}
             <section className="gsap-news-spotlight opacity-0 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+              {/* KOLOM KIRI: BERITA UTAMA (FEATURED NEWS) */}
               <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-4xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between group">
-                {/* Bagian Media Berita Utama: Otomatis mendeteksi Video atau Foto */}
-                {/* Bagian Media Berita Utama: Otomatis mendeteksi Video atau Foto */}
                 <div className="h-64 sm:h-80 overflow-hidden relative bg-slate-100">
                   {featuredNews.videoUrl ? (
                     <iframe
@@ -248,9 +200,25 @@ export default function News() {
                     />
                   )}
 
-                  <span className="absolute top-6 left-6 text-[10px] font-black tracking-widest bg-blue-600 text-white px-3 py-1 rounded-full uppercase shadow-md z-10">
-                    ⭐ {featuredNews.category || "Berita Utama"}
-                  </span>
+                  {(() => {
+                    const catName =
+                      featuredNews.kategori ||
+                      featuredNews.category ||
+                      "BERITA";
+                    const badge = getCategoryBadge(catName);
+                    return (
+                      <div
+                        className={`absolute top-6 left-6 px-3 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-md z-10 ${badge.color}`}
+                      >
+                        <span className="text-xs leading-none">
+                          {badge.icon}
+                        </span>
+                        <span className="text-[10px] font-black tracking-widest uppercase leading-none">
+                          {catName}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="p-6 sm:p-8 space-y-4 grow flex flex-col justify-between">
@@ -293,7 +261,7 @@ export default function News() {
                 </div>
               </div>
 
-              {/* KANAN: Video Berita Terkini */}
+              {/* KANAN: Video Berita Terkini & Pembelajaran */}
               <div className="lg:col-span-5 space-y-6">
                 {videosList.length > 0 ? (
                   <div className="bg-slate-950 rounded-4xl p-6 sm:p-8 text-white shadow-xl border border-slate-800 relative overflow-hidden">
@@ -420,7 +388,9 @@ export default function News() {
                 {regularNews.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {regularNews.map((news) => {
-                      const categoryBadge = getCategoryBadge(news.category);
+                      const categoryBadge = getCategoryBadge(
+                        news.kategori || news.category || "BERITA",
+                      );
                       return (
                         <div
                           key={news.id}
@@ -432,7 +402,7 @@ export default function News() {
                               alt={news.title}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />
-                            {news.category && (
+                            {(news.kategori || news.category) && (
                               <div
                                 className={`absolute bottom-3 left-3 px-2 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-sm ${categoryBadge.color}`}
                               >
@@ -440,7 +410,7 @@ export default function News() {
                                   {categoryBadge.icon}
                                 </span>
                                 <span className="text-[9px] font-black tracking-widest uppercase leading-none">
-                                  {news.category}
+                                  {news.kategori || news.category}
                                 </span>
                               </div>
                             )}

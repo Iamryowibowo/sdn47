@@ -11,52 +11,14 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { db } from "../config/firebase"; // Pastikan path ke file firebase.js Anda sudah benar
+import { getCategoryColor } from "../utils/categoryHelper";
+import { getCategoryBadge } from "../utils/categoryHelper";
 import home1 from "../assets/images/HOME1.jpeg";
 import fotoKepsek from "../assets/images/KEPSEK.jpeg";
 // Sesuaikan path-nya relatif terhadap file .jsx kamu
 // Sesuaikan path-nya relatif terhadap file .jsx kamu
 gsap.registerPlugin(useGSAP);
 
-const getCategoryBadge = (category) => {
-  const cat = category?.toUpperCase();
-  switch (cat) {
-    case "PRESTASI":
-      return {
-        icon: "⭐",
-        color: "bg-amber-500/10 text-amber-700 border-amber-500/20",
-      };
-    case "PENGUMUMAN":
-      return {
-        icon: "📢",
-        color: "bg-blue-500/10 text-blue-700 border-blue-500/20",
-      };
-    case "KEGIATAN":
-      return {
-        icon: "🏆",
-        color: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
-      };
-    case "AKADEMIK":
-      return {
-        icon: "📚",
-        color: "bg-indigo-500/10 text-indigo-700 border-indigo-500/20",
-      };
-    case "EKSTRAKURIKULER":
-      return {
-        icon: "⚽",
-        color: "bg-purple-500/10 text-purple-700 border-purple-500/20",
-      };
-    case "ARTIKEL":
-      return {
-        icon: "✍️",
-        color: "bg-rose-500/10 text-rose-700 border-rose-500/20",
-      };
-    default:
-      return {
-        icon: "📰",
-        color: "bg-slate-500/10 text-slate-700 border-slate-500/20",
-      };
-  }
-};
 export default function Home() {
   const containerRef = useRef();
   const canvasRef = useRef();
@@ -91,19 +53,6 @@ export default function Home() {
     };
     fetchLatestNews();
   }, []);
-
-  const getCategoryColor = (cat) => {
-    switch (cat?.toUpperCase()) {
-      case "PRESTASI":
-        return "bg-emerald-50 text-emerald-600";
-      case "PENGUMUMAN":
-        return "bg-blue-50 text-blue-600";
-      case "KEGIATAN":
-        return "bg-purple-50 text-purple-600";
-      default:
-        return "bg-slate-50 text-slate-600";
-    }
-  };
 
   // =========================================================
   // 1. GENERATIVE LIGHT PARTICLES CANVAS (Efek Interaktif Mouse)
