@@ -205,13 +205,34 @@ export default function NewsDetail() {
               </div>
             </div>
 
-            {news.imageUrl && (
+            {/* Media Utama: Otomatis mendeteksi Video (YouTube/GDrive) atau Foto */}
+            {(news.videoUrl || news.imageUrl) && (
               <div className="w-full h-64 sm:h-95 rounded-2xl overflow-hidden shadow-sm bg-slate-100">
-                <img
-                  src={news.imageUrl}
-                  alt={news.title}
-                  className="w-full h-full object-cover hover:scale-102 transition-transform duration-500"
-                />
+                {news.videoUrl ? (
+                  <iframe
+                    className="w-full h-full object-cover"
+                    src={
+                      news.videoUrl.includes("drive.google.com")
+                        ? news.videoUrl
+                            .replace("/view?usp=sharing", "/preview")
+                            .replace("/view", "/preview")
+                        : `https://www.youtube.com/embed/${
+                            news.videoUrl.includes("youtu.be")
+                              ? news.videoUrl.split("/").pop().split("?")[0]
+                              : news.videoUrl.split("v=")[1]?.split("&")[0]
+                          }`
+                    }
+                    allow="autoplay; encrypted-media"
+                    allowFullScreen
+                    title={news.title}
+                  />
+                ) : (
+                  <img
+                    src={news.imageUrl}
+                    alt={news.title}
+                    className="w-full h-full object-cover hover:scale-102 transition-transform duration-500"
+                  />
+                )}
               </div>
             )}
 

@@ -212,16 +212,33 @@ export default function News() {
             {/* SECTION 2: TOP SPOTLIGHT (BERITA UTAMA & VIDEO) */}
             <section className="gsap-news-spotlight opacity-0 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
               <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-4xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between group">
+                {/* Bagian Media Berita Utama: Otomatis mendeteksi Video atau Foto */}
+                {/* Bagian Media Berita Utama: Otomatis mendeteksi Video atau Foto */}
                 <div className="h-64 sm:h-80 overflow-hidden relative bg-slate-100">
-                  <img
-                    src={featuredNews.imageUrl}
-                    alt={featuredNews.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <span className="absolute top-6 left-6 text-[10px] font-black tracking-widest bg-blue-600 text-white px-3 py-1 rounded-full uppercase shadow-md">
+                  {featuredNews.videoUrl ? (
+                    <iframe
+                      className="w-full h-full object-cover"
+                      src={`https://www.youtube.com/embed/${
+                        featuredNews.videoUrl.includes("youtu.be")
+                          ? featuredNews.videoUrl.split("/").pop()
+                          : featuredNews.videoUrl.split("v=")[1]
+                      }`}
+                      allowFullScreen
+                      title={featuredNews.title}
+                    />
+                  ) : (
+                    <img
+                      src={featuredNews.imageUrl}
+                      alt={featuredNews.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                  )}
+
+                  <span className="absolute top-6 left-6 text-[10px] font-black tracking-widest bg-blue-600 text-white px-3 py-1 rounded-full uppercase shadow-md z-10">
                     ⭐ {featuredNews.category || "Berita Utama"}
                   </span>
                 </div>
+
                 <div className="p-6 sm:p-8 space-y-4 grow flex flex-col justify-between">
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-slate-400 flex items-center gap-2">
@@ -243,7 +260,6 @@ export default function News() {
                       {featuredNews.title}
                     </h2>
 
-                    {/* Ringkasan Konten yang Dipecah Rapi (Line-clamp 3) */}
                     <div className="text-slate-600 text-xs sm:text-sm font-light leading-relaxed line-clamp-3 space-y-2">
                       {featuredNews.content}
                     </div>
