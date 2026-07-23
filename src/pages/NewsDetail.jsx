@@ -165,37 +165,29 @@ export default function NewsDetail() {
               </div>
             </div>
 
-            {/* Media Utama: Otomatis mendeteksi Video (YouTube/GDrive) atau Foto */}
+            {/* Media Utama: Otomatis mendeteksi Cloudinary/Video URL atau Foto */}
             {(news.videoUrl || news.imageUrl) && (
-              <div className="w-full h-64 sm:h-95 rounded-2xl overflow-hidden shadow-sm bg-slate-100">
+              <div className="w-full bg-slate-900 rounded-2xl overflow-hidden shadow-sm">
                 {news.videoUrl ? (
-                  <iframe
-                    className="w-full h-full object-cover"
-                    src={
-                      news.videoUrl.includes("drive.google.com")
-                        ? news.videoUrl
-                            .replace("/view?usp=sharing", "/preview")
-                            .replace("/view", "/preview")
-                        : `https://www.youtube.com/embed/${
-                            news.videoUrl.includes("youtu.be")
-                              ? news.videoUrl.split("/").pop().split("?")[0]
-                              : news.videoUrl.split("v=")[1]?.split("&")[0]
-                          }`
-                    }
-                    allow="autoplay; encrypted-media"
-                    allowFullScreen
-                    title={news.title}
-                  />
+                  // Tampilan untuk Video Cloudinary / Firebase Storage / Link Video Langsung
+                  <div className="w-full bg-black flex items-center justify-center">
+                    <video
+                      src={news.videoUrl}
+                      controls
+                      playsInline
+                      className="w-full max-h-[450px] object-contain mx-auto"
+                    />
+                  </div>
                 ) : (
+                  // Tampilan untuk Foto
                   <img
                     src={news.imageUrl}
                     alt={news.title}
-                    className="w-full h-full object-cover hover:scale-102 transition-transform duration-500"
+                    className="w-full h-64 sm:h-96 object-cover hover:scale-102 transition-transform duration-500"
                   />
                 )}
               </div>
             )}
-
             {/* Isi Konten Berita (Pecah Paragraf Otomatis) */}
             <div className="text-slate-700 leading-relaxed font-normal text-justify sm:text-lg space-y-4">
               {news.content

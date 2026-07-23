@@ -166,32 +166,46 @@ export default function News() {
             <section className="gsap-news-spotlight opacity-0 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
               {/* KOLOM KIRI: BERITA UTAMA (FEATURED NEWS) */}
               <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-4xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between group">
-                <div className="h-64 sm:h-80 overflow-hidden relative bg-slate-100">
+                <div className="h-64 sm:h-80 overflow-hidden relative bg-slate-900 flex items-center justify-center">
                   {featuredNews.videoUrl ? (
-                    <iframe
-                      className="w-full h-full object-cover"
-                      src={
-                        featuredNews.videoUrl.includes("drive.google.com")
-                          ? featuredNews.videoUrl
-                              .replace("/view?usp=sharing", "/preview")
-                              .replace("/view", "/preview")
-                          : `https://www.youtube.com/embed/${
-                              featuredNews.videoUrl.includes("youtu.be")
-                                ? featuredNews.videoUrl
-                                    .split("/")
-                                    .pop()
-                                    .split("?")[0]
-                                : featuredNews.videoUrl.includes("watch?v=")
-                                  ? featuredNews.videoUrl
-                                      .split("watch?v=")[1]
-                                      .split("&")[0]
-                                  : featuredNews.videoUrl.split("/").pop()
-                            }`
-                      }
-                      allow="autoplay; encrypted-media"
-                      allowFullScreen
-                      title={featuredNews.title}
-                    />
+                    // Cek apakah video berasal dari Cloudinary / file video langsung atau YouTube/Drive
+                    featuredNews.videoUrl.includes("drive.google.com") ? (
+                      <iframe
+                        className="w-full h-full border-0"
+                        src={featuredNews.videoUrl
+                          .replace("/view?usp=sharing", "/preview")
+                          .replace("/view", "/preview")}
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen
+                        title={featuredNews.title}
+                      />
+                    ) : featuredNews.videoUrl.includes("youtube.com") ||
+                      featuredNews.videoUrl.includes("youtu.be") ? (
+                      <iframe
+                        className="w-full h-full border-0"
+                        src={`https://www.youtube.com/embed/${
+                          featuredNews.videoUrl.includes("youtu.be")
+                            ? featuredNews.videoUrl
+                                .split("/")
+                                .pop()
+                                .split("?")[0]
+                            : featuredNews.videoUrl
+                                .split("v=")[1]
+                                ?.split("&")[0]
+                        }`}
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen
+                        title={featuredNews.title}
+                      />
+                    ) : (
+                      // Untuk Cloudinary atau file video langsung
+                      <video
+                        src={featuredNews.videoUrl}
+                        controls
+                        playsInline
+                        className="w-full h-full object-contain mx-auto"
+                      />
+                    )
                   ) : (
                     <img
                       src={featuredNews.imageUrl}
