@@ -83,14 +83,12 @@ export default function NewsDetail() {
 
       const tl = gsap.timeline();
 
-      // Animasi Konten Utama di Kiri
       tl.fromTo(
         ".gsap-news-content",
         { opacity: 0, y: 30 },
         { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" },
       );
 
-      // Animasi Sidebar di Kanan secara berurutan (stagger)
       tl.fromTo(
         ".gsap-sidebar-item",
         { opacity: 0, x: 20 },
@@ -165,21 +163,19 @@ export default function NewsDetail() {
               </div>
             </div>
 
-            {/* Media Utama: Otomatis mendeteksi Cloudinary/Video URL atau Foto */}
+            {/* Media Utama (Foto Pertama / Video) */}
             {(news.videoUrl || news.imageUrl) && (
               <div className="w-full bg-slate-900 rounded-2xl overflow-hidden shadow-sm">
                 {news.videoUrl ? (
-                  // Tampilan untuk Video Cloudinary / Firebase Storage / Link Video Langsung
                   <div className="w-full bg-black flex items-center justify-center">
                     <video
                       src={news.videoUrl}
                       controls
                       playsInline
-                      className="w-full max-h-[450px] object-contain mx-auto"
+                      className="w-full max-h-112.5 object-contain mx-auto"
                     />
                   </div>
                 ) : (
-                  // Tampilan untuk Foto
                   <img
                     src={news.imageUrl}
                     alt={news.title}
@@ -188,22 +184,34 @@ export default function NewsDetail() {
                 )}
               </div>
             )}
-            {/* Isi Konten Berita (Pecah Paragraf Otomatis) */}
-            <div className="text-slate-700 leading-relaxed font-normal text-justify sm:text-lg space-y-4">
-              {news.content
-                .split(/(?<=[.!?])\s+/)
-                .reduce((acc, sentence, index) => {
-                  const paragraphIndex = Math.floor(index / 3);
-                  if (!acc[paragraphIndex]) acc[paragraphIndex] = [];
-                  acc[paragraphIndex].push(sentence);
-                  return acc;
-                }, [])
-                .map((paragraphSentences, idx) => (
-                  <p key={idx} className="leading-relaxed">
-                    {paragraphSentences.join(" ")}
-                  </p>
-                ))}
-            </div>
+
+            {/* Isi Konten Berita (Render langsung dari HTML Rich Text) */}
+            {/* Isi Konten Berita (Otomatis Rapi & Mendukung Baris Baru) */}
+            <div
+              className="text-slate-700 leading-relaxed font-normal text-justify sm:text-lg space-y-4 prose max-w-none"
+              dangerouslySetInnerHTML={{ __html: news.content }}
+            />
+            {/* Foto Kedua (Opsional di tengah) */}
+            {news.imageUrl2 && (
+              <div className="my-6 w-full bg-slate-900 rounded-2xl overflow-hidden shadow-sm">
+                <img
+                  src={news.imageUrl2}
+                  alt={`${news.title} - Foto 2`}
+                  className="w-full h-64 sm:h-96 object-cover hover:scale-102 transition-transform duration-500"
+                />
+              </div>
+            )}
+
+            {/* Foto Ketiga (Opsional di bawah) */}
+            {news.imageUrl3 && (
+              <div className="my-6 w-full bg-slate-900 rounded-2xl overflow-hidden shadow-sm">
+                <img
+                  src={news.imageUrl3}
+                  alt={`${news.title} - Foto 3`}
+                  className="w-full h-64 sm:h-96 object-cover hover:scale-102 transition-transform duration-500"
+                />
+              </div>
+            )}
 
             {/* Tombol Share & Kembali */}
             <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">

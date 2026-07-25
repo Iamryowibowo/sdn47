@@ -4,21 +4,34 @@ import { db } from "../../config/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-hot-toast";
 import imageCompression from "browser-image-compression";
+import ReactQuill from "react-quill-new";
+// CSS diimpor via CDN di index.html, jadi baris import css lokal dihapus
 
 export default function AdminNews() {
-  const fileInputRef = useRef(null);
+  const fileInputRef1 = useRef(null);
+  const fileInputRef2 = useRef(null);
+  const fileInputRef3 = useRef(null);
+
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState(null);
-  const [compressedFile, setCompressedFile] = useState(null);
+
+  const [preview1, setPreview1] = useState(null);
+  const [file1, setFile1] = useState(null);
+
+  const [preview2, setPreview2] = useState(null);
+  const [file2, setFile2] = useState(null);
+
+  const [preview3, setPreview3] = useState(null);
+  const [file3, setFile3] = useState(null);
+
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     category: "PRESTASI",
     dateString: "",
-    videoUrl: "", // <-- Tambahan untuk link YouTube berita video
+    videoUrl: "",
   });
 
-  const handleFileChange = async (e) => {
+  const handleCompressAndSet = async (e, setFileFunc, setPreviewFunc) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -30,12 +43,11 @@ export default function AdminNews() {
         useWebWorker: true,
       };
       const compressed = await imageCompression(file, options);
-      setCompressedFile(compressed);
-      setPreview(URL.createObjectURL(compressed));
+      setFileFunc(compressed);
+      setPreviewFunc(URL.createObjectURL(compressed));
       toast.dismiss(toastId);
       toast.success("Gambar siap!");
-      // eslint-disable-next-line no-unused-vars
-    } catch (err) {
+    } catch {
       toast.dismiss(toastId);
       toast.error("Gagal kompres foto");
     }
@@ -43,31 +55,33 @@ export default function AdminNews() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!compressedFile || !formData.title || !formData.content) {
-      return toast.error("Judul, Konten, dan Foto Banner wajib diisi!");
+    if (!file1 || !formData.title || !formData.content) {
+      return toast.error("Judul, Konten, dan Foto Utama wajib diisi!");
     }
 
     setLoading(true);
     const loadingToast = toast.loading("Menerbitkan berita...");
 
     try {
-      // 1. Upload foto banner ke Cloudinary
-      const dataCloudinary = new FormData();
-      dataCloudinary.append("file", compressedFile);
-      dataCloudinary.append("upload_preset", "admin_sekolah"); // Sesuaikan preset cloudinary kamu
+      const uploadToCloudinary = async (fileToUpload) => {
+        const dataCloudinary = new FormData();
+        dataCloudinary.append("file", fileToUpload);
+        dataCloudinary.append("upload_preset", "admin_sekolah");
 
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/dkcoq6uge/image/upload`, // Sesuaikan cloud name kamu
-        {
-          method: "POST",
-          body: dataCloudinary,
-        },
-      );
-      const fileData = await res.json();
-      if (!res.ok)
-        throw new Error(fileData.error?.message || "Gagal upload gambar");
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/dkcoq6uge/image/upload`,
+          { method: "POST", body: dataCloudinary },
+        );
+        const fileData = await res.json();
+        if (!res.ok)
+          throw new Error(fileData.error?.message || "Gagal upload gambar");
+        return fileData.secure_url;
+      };
 
-      // 2. Simpan data lengkap ke koleksi 'news' di Firestore
+      const imageUrl1 = await uploadToCloudinary(file1);
+      const imageUrl2 = file2 ? await uploadToCloudinary(file2) : "";
+      const imageUrl3 = file3 ? await uploadToCloudinary(file3) : "";
+
       await addDoc(collection(db, "news"), {
         title: formData.title,
         content: formData.content,
@@ -79,8 +93,10 @@ export default function AdminNews() {
             month: "long",
             year: "numeric",
           }),
-        imageUrl: fileData.secure_url, // URL gambar dari Cloudinary
-        videoUrl: formData.videoUrl || "", // URL YouTube opsional (jika diisi, berita utama jadi video)
+        imageUrl: imageUrl1,
+        imageUrl2: imageUrl2,
+        imageUrl3: imageUrl3,
+        videoUrl: formData.videoUrl || "",
         views: 0,
         createdAt: serverTimestamp(),
       });
@@ -88,7 +104,6 @@ export default function AdminNews() {
       toast.dismiss(loadingToast);
       toast.success("Berita berhasil diterbitkan! 🚀");
 
-      // 3. Reset form
       setFormData({
         title: "",
         content: "",
@@ -96,11 +111,14 @@ export default function AdminNews() {
         dateString: "",
         videoUrl: "",
       });
-      setPreview(null);
-      setCompressedFile(null);
+      setPreview1(null);
+      setFile1(null);
+      setPreview2(null);
+      setFile2(null);
+      setPreview3(null);
+      setFile3(null);
     } catch (error) {
       toast.dismiss(loadingToast);
-      console.error("Gagal:", error);
       toast.error("Gagal: " + error.message);
     } finally {
       setLoading(false);
@@ -108,7 +126,7 @@ export default function AdminNews() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-3xl border border-slate-200 shadow-sm">
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-3xl border border-slate-200 shadow-sm">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-black text-slate-950">Buat Berita Baru</h2>
         <Link
@@ -119,21 +137,19 @@ export default function AdminNews() {
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Judul Berita */}
+      <form onSubmit={handleSubmit} className="space-y-6">
         <input
           required
           type="text"
           placeholder="Judul Berita..."
-          className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-medium"
+          className="w-full p-4 rounded-xl border border-slate-200 outline-none font-medium"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         />
 
-        {/* Kategori & Tanggal */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <select
-            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-slate-700 font-medium"
+            className="w-full p-4 rounded-xl border border-slate-200 bg-white font-medium"
             value={formData.category}
             onChange={(e) =>
               setFormData({ ...formData, category: e.target.value })
@@ -149,8 +165,8 @@ export default function AdminNews() {
 
           <input
             type="text"
-            placeholder="Label Tanggal (Misal: 22 Juli 2026)"
-            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
+            placeholder="Label Tanggal (Misal: 25 Juli 2026)"
+            className="w-full p-4 rounded-xl border border-slate-200"
             value={formData.dateString}
             onChange={(e) =>
               setFormData({ ...formData, dateString: e.target.value })
@@ -158,64 +174,136 @@ export default function AdminNews() {
           />
         </div>
 
-        {/* Link YouTube (Opsional - Jika ingin beritanya berwujud Video) */}
         <input
           type="url"
-          placeholder="Link YouTube Berita (Opsional - https://youtube.com/...)"
-          className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
+          placeholder="Link Video / YouTube / Cloudinary (Opsional)"
+          className="w-full p-4 rounded-xl border border-slate-200 outline-none"
           value={formData.videoUrl}
           onChange={(e) =>
             setFormData({ ...formData, videoUrl: e.target.value })
           }
         />
-        <p className="text-[11px] text-slate-400 -mt-2 px-1">
-          *Kosongkan jika berita berupa foto biasa. Jika diisi, kotak berita
-          utama akan memutar video YouTube ini.
-        </p>
 
-        {/* Konten Berita */}
-        <textarea
-          required
-          rows="6"
-          placeholder="Tulis isi berita di sini..."
-          className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
-          value={formData.content}
-          onChange={(e) =>
-            setFormData({ ...formData, content: e.target.value })
-          }
-        />
-
-        {/* Upload Foto Banner / Thumbnail */}
+        {/* Rich Text Editor */}
         <div className="space-y-2">
           <label className="text-sm font-bold text-slate-700 block">
-            Foto Banner Berita (Wajib - Otomatis Kompres &lt; 500KB)
+            Isi Konten Berita
           </label>
-          <div
-            className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center cursor-pointer hover:border-blue-400 transition-all"
-            onClick={() => fileInputRef.current.click()}
-          >
-            {preview ? (
-              <img
-                src={preview}
-                alt="Preview"
-                className="rounded-xl w-full h-56 object-cover"
-              />
-            ) : (
-              <p className="py-8 text-slate-400 font-medium">
-                Klik untuk memilih foto banner berita...
-              </p>
-            )}
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={handleFileChange}
-              accept="image/*"
+          <div className="bg-white rounded-xl overflow-hidden border border-slate-200">
+            <ReactQuill
+              theme="snow"
+              value={formData.content}
+              onChange={(content) => setFormData({ ...formData, content })}
+              className="h-64 mb-12"
             />
           </div>
         </div>
 
-        {/* Tombol Submit */}
+        {/* Upload 3 Foto */}
+        <div className="space-y-4 pt-4 border-t border-slate-100">
+          <h3 className="text-sm font-bold text-slate-900">
+            Lampiran Foto Berita
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Foto 1 */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-600 block">
+                Foto Utama (Wajib)
+              </label>
+              <div
+                className="border-2 border-dashed border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:border-blue-400 h-40 flex flex-col items-center justify-center overflow-hidden"
+                onClick={() => fileInputRef1.current.click()}
+              >
+                {preview1 ? (
+                  <img
+                    src={preview1}
+                    alt="Preview 1"
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <span className="text-xs text-slate-400">
+                    + Upload Foto 1
+                  </span>
+                )}
+                <input
+                  type="file"
+                  ref={fileInputRef1}
+                  className="hidden"
+                  onChange={(e) =>
+                    handleCompressAndSet(e, setFile1, setPreview1)
+                  }
+                  accept="image/*"
+                />
+              </div>
+            </div>
+
+            {/* Foto 2 */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-600 block">
+                Foto Kedua (Opsional)
+              </label>
+              <div
+                className="border-2 border-dashed border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:border-blue-400 h-40 flex flex-col items-center justify-center overflow-hidden"
+                onClick={() => fileInputRef2.current.click()}
+              >
+                {preview2 ? (
+                  <img
+                    src={preview2}
+                    alt="Preview 2"
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <span className="text-xs text-slate-400">
+                    + Upload Foto 2
+                  </span>
+                )}
+                <input
+                  type="file"
+                  ref={fileInputRef2}
+                  className="hidden"
+                  onChange={(e) =>
+                    handleCompressAndSet(e, setFile2, setPreview2)
+                  }
+                  accept="image/*"
+                />
+              </div>
+            </div>
+
+            {/* Foto 3 */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-600 block">
+                Foto Ketiga (Opsional)
+              </label>
+              <div
+                className="border-2 border-dashed border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:border-blue-400 h-40 flex flex-col items-center justify-center overflow-hidden"
+                onClick={() => fileInputRef3.current.click()}
+              >
+                {preview3 ? (
+                  <img
+                    src={preview3}
+                    alt="Preview 3"
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <span className="text-xs text-slate-400">
+                    + Upload Foto 3
+                  </span>
+                )}
+                <input
+                  type="file"
+                  ref={fileInputRef3}
+                  className="hidden"
+                  onChange={(e) =>
+                    handleCompressAndSet(e, setFile3, setPreview3)
+                  }
+                  accept="image/*"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <button
           disabled={loading}
           type="submit"
