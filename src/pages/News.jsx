@@ -256,9 +256,10 @@ export default function News() {
                       {featuredNews.title}
                     </h2>
 
-                    <div className="text-slate-600 text-xs sm:text-sm font-light leading-relaxed line-clamp-3 space-y-2">
-                      {featuredNews.content}
-                    </div>
+                    <div
+                      className="text-slate-600 text-xs sm:text-sm font-light leading-relaxed line-clamp-3 space-y-2 prose max-w-none"
+                      dangerouslySetInnerHTML={{ __html: featuredNews.content }}
+                    />
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold">
@@ -447,9 +448,12 @@ export default function News() {
                               <h4 className="font-bold text-slate-950 text-sm sm:text-base leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
                                 {news.title}
                               </h4>
-                              <p className="text-slate-500 text-xs font-light line-clamp-2 leading-relaxed">
-                                {news.content}
-                              </p>
+                              <div
+                                className="text-slate-500 text-xs font-light line-clamp-2 leading-relaxed prose max-w-none text-xs"
+                                dangerouslySetInnerHTML={{
+                                  __html: news.content,
+                                }}
+                              />
                             </div>
                             <Link
                               to={`/news/${news.id}`}
