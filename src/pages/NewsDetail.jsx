@@ -187,8 +187,9 @@ export default function NewsDetail() {
 
             {/* Isi Konten Berita (Render langsung dari HTML Rich Text) */}
             {/* Isi Konten Berita (Otomatis Rapi & Mendukung Baris Baru) */}
+            {/* Isi Konten Berita */}
             <div
-              className="text-slate-700 leading-relaxed font-normal text-justify sm:text-lg space-y-4 prose max-w-none"
+              className="text-slate-700 leading-relaxed font-normal text-justify sm:text-lg space-y-4 prose prose-slate max-w-none [&>ol]:list-decimal [&>ol]:pl-5 [&>ul]:list-disc [&>ul]:pl-5 [&>li]:mb-2"
               dangerouslySetInnerHTML={{ __html: news.content }}
             />
             {/* Foto Kedua (Opsional di tengah) */}

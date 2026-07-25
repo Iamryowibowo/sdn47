@@ -257,7 +257,7 @@ export default function News() {
                     </h2>
 
                     <div
-                      className="text-slate-600 text-xs sm:text-sm font-light leading-relaxed line-clamp-3 space-y-2 prose max-w-none"
+                      className="text-slate-600 text-xs sm:text-sm font-light leading-relaxed line-clamp-3 space-y-2 prose prose-slate max-w-none [&>ol]:list-decimal [&>ol]:pl-5 [&>ul]:list-disc [&>ul]:pl-5 [&>li]:mb-1"
                       dangerouslySetInnerHTML={{ __html: featuredNews.content }}
                     />
                   </div>
@@ -449,7 +449,7 @@ export default function News() {
                                 {news.title}
                               </h4>
                               <div
-                                className="text-slate-500 text-xs font-light line-clamp-2 leading-relaxed prose max-w-none text-xs"
+                                className="text-slate-500 text-xs font-light line-clamp-2 leading-relaxed prose prose-slate max-w-none [&>ol]:list-decimal [&>ol]:pl-5 [&>ul]:list-disc [&>ul]:pl-5 [&>li]:mb-1"
                                 dangerouslySetInnerHTML={{
                                   __html: news.content,
                                 }}
