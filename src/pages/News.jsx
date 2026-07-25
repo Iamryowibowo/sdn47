@@ -257,7 +257,7 @@ export default function News() {
                     </h2>
 
                     <div
-                      className="text-slate-600 text-xs text-justify sm:text-sm font-light leading-relaxed line-clamp-3 overflow-hidden space-y-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_li]:list-item"
+                      className="text-slate-600 text-xs text-justify sm:text-sm font-light leading-relaxed max-h-24 overflow-hidden space-y-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_li]:list-item"
                       dangerouslySetInnerHTML={{ __html: featuredNews.content }}
                     />
                   </div>
