@@ -13,7 +13,7 @@ import {
 import { db } from "../config/firebase"; // Pastikan path ke file firebase.js Anda sudah benar
 import { getCategoryColor } from "../utils/categoryHelper";
 import { getCategoryBadge } from "../utils/categoryHelper";
-import home1 from "../assets/images/HOME1.jpeg";
+import home2 from "../assets/images/home2.jpg";
 import fotoKepsek from "../assets/images/KEPSEK.jpeg";
 // Sesuaikan path-nya relatif terhadap file .jsx kamu
 // Sesuaikan path-nya relatif terhadap file .jsx kamu
@@ -295,7 +295,7 @@ export default function Home() {
             <div className="absolute inset-0 bg-blue-300 rounded-[40px] filter blur-2xl opacity-20 rotate-6 scale-95"></div>
             <div className="relative border-2 border-white bg-white p-3 rounded-[36px] shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-100 max-w-full">
               <img
-                src={home1}
+                src={home2}
                 alt="Siswa Belajar"
                 className="rounded-[28px] object-cover max-md:h-95 h-100 w-full lg:w-150"
               />
