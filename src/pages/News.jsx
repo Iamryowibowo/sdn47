@@ -41,12 +41,16 @@ const UPCOMING_AGENDAS = [
   },
 ];
 
+// Jumlah kartu arsip berita yang ditampilkan per "halaman"
+const NEWS_PAGE_SIZE = 4;
+
 export default function News() {
   const containerRef = useRef();
   const [newsList, setNewsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const formatter = buildFormatter(idStrings);
   const [videosList, setVideosList] = useState([]);
+  const [visibleCount, setVisibleCount] = useState(NEWS_PAGE_SIZE);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -76,6 +80,12 @@ export default function News() {
 
   const featuredNews = newsList[0] || null;
   const regularNews = newsList.slice(1);
+  const visibleNews = regularNews.slice(0, visibleCount);
+  const hasMoreNews = visibleCount < regularNews.length;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => prev + NEWS_PAGE_SIZE);
+  };
 
   // LOGIKA GSAP
   useGSAP(
@@ -128,6 +138,26 @@ export default function News() {
       );
     },
     { scope: containerRef, dependencies: [loading, newsList] },
+  );
+
+  // Animasi khusus untuk kartu-kartu baru yang muncul setelah klik "Muat Lebih Banyak"
+  useGSAP(
+    () => {
+      if (loading) return;
+      gsap.fromTo(
+        ".gsap-news-card",
+        { opacity: 0, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          stagger: 0.1,
+          duration: 0.5,
+          ease: "power2.out",
+          overwrite: "auto",
+        },
+      );
+    },
+    { scope: containerRef, dependencies: [visibleCount] },
   );
 
   return (
@@ -401,71 +431,88 @@ export default function News() {
                 </h3>
 
                 {regularNews.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {regularNews.map((news) => {
-                      const categoryBadge = getCategoryBadge(
-                        news.kategori || news.category || "BERITA",
-                      );
-                      return (
-                        <div
-                          key={news.id}
-                          className="gsap-news-card opacity-0 bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group"
-                        >
-                          <div className="h-44 bg-slate-100 overflow-hidden relative">
-                            <img
-                              src={news.imageUrl}
-                              alt={news.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                            {(news.kategori || news.category) && (
-                              <div
-                                className={`absolute bottom-3 left-3 px-2 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-sm ${categoryBadge.color}`}
-                              >
-                                <span className="text-[10px] leading-none">
-                                  {categoryBadge.icon}
-                                </span>
-                                <span className="text-[9px] font-black tracking-widest uppercase leading-none">
-                                  {news.kategori || news.category}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-5 grow flex flex-col justify-between space-y-3">
-                            <div className="space-y-1">
-                              <div className="text-[10px] text-slate-400 font-medium flex justify-between items-center">
-                                <span>📅 {news.dateString}</span>
-                                <span>
-                                  {news.createdAt ? (
-                                    <TimeAgo
-                                      date={news.createdAt.toDate()}
-                                      formatter={formatter}
-                                    />
-                                  ) : (
-                                    "Baru saja"
-                                  )}
-                                </span>
-                              </div>
-                              <h4 className="font-bold text-slate-950 text-sm sm:text-base leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
-                                {news.title}
-                              </h4>
-                              <div
-                                className="text-slate-500 text-xs font-light line-clamp-2 leading-relaxed prose prose-slate max-w-none [&>ol]:list-decimal [&>ol]:pl-5 [&>ul]:list-disc [&>ul]:pl-5 [&>li]:mb-1"
-                                dangerouslySetInnerHTML={{
-                                  __html: news.content,
-                                }}
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {visibleNews.map((news) => {
+                        const categoryBadge = getCategoryBadge(
+                          news.kategori || news.category || "BERITA",
+                        );
+                        return (
+                          <div
+                            key={news.id}
+                            className="gsap-news-card opacity-0 bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group"
+                          >
+                            <div className="h-44 bg-slate-100 overflow-hidden relative">
+                              <img
+                                src={news.imageUrl}
+                                alt={news.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               />
+                              {(news.kategori || news.category) && (
+                                <div
+                                  className={`absolute bottom-3 left-3 px-2 py-1.5 rounded-xl border flex items-center gap-1.5 shadow-sm ${categoryBadge.color}`}
+                                >
+                                  <span className="text-[10px] leading-none">
+                                    {categoryBadge.icon}
+                                  </span>
+                                  <span className="text-[9px] font-black tracking-widest uppercase leading-none">
+                                    {news.kategori || news.category}
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                            <Link
-                              to={`/news/${news.id}`}
-                              className="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors pt-2 block border-t border-slate-50"
-                            >
-                              Selengkapnya →
-                            </Link>
+                            <div className="p-5 grow flex flex-col justify-between space-y-3">
+                              <div className="space-y-1">
+                                <div className="text-[10px] text-slate-400 font-medium flex justify-between items-center">
+                                  <span>📅 {news.dateString}</span>
+                                  <span>
+                                    {news.createdAt ? (
+                                      <TimeAgo
+                                        date={news.createdAt.toDate()}
+                                        formatter={formatter}
+                                      />
+                                    ) : (
+                                      "Baru saja"
+                                    )}
+                                  </span>
+                                </div>
+                                <h4 className="font-bold text-slate-950 text-sm sm:text-base leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
+                                  {news.title}
+                                </h4>
+                                <div
+                                  className="text-slate-500 text-xs font-light line-clamp-2 leading-relaxed prose prose-slate max-w-none [&>ol]:list-decimal [&>ol]:pl-5 [&>ul]:list-disc [&>ul]:pl-5 [&>li]:mb-1"
+                                  dangerouslySetInnerHTML={{
+                                    __html: news.content,
+                                  }}
+                                />
+                              </div>
+                              <Link
+                                to={`/news/${news.id}`}
+                                className="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors pt-2 block border-t border-slate-50"
+                              >
+                                Selengkapnya →
+                              </Link>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* TOMBOL MUAT LEBIH BANYAK */}
+                    {hasMoreNews && (
+                      <div className="flex justify-center pt-4">
+                        <button
+                          onClick={handleLoadMore}
+                          className="px-6 py-3 bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-700 hover:text-blue-600 rounded-2xl font-bold text-xs tracking-wide transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+                        >
+                          Muat Lebih Banyak
+                          <span className="text-slate-400">
+                            ({regularNews.length - visibleCount} lagi)
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="gsap-empty-state opacity-0 bg-white border border-dashed border-slate-300 rounded-4xl p-10 flex flex-col items-center justify-center text-center space-y-3 shadow-sm">
                     <span className="text-4xl">📭</span>
