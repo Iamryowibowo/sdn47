@@ -19,6 +19,22 @@ import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(useGSAP);
 
+// Ambil YouTube video ID dari berbagai format URL (watch, youtu.be, embed, shorts)
+function getYoutubeId(url) {
+  if (!url) return null;
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=)([^&\n?#]+)/,
+    /(?:youtube\.com\/embed\/)([^&\n?#]+)/,
+    /(?:youtube\.com\/shorts\/)([^&\n?#]+)/,
+    /(?:youtu\.be\/)([^&\n?#]+)/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) return match[1];
+  }
+  return null;
+}
+
 export default function NewsDetail() {
   const { id } = useParams();
   const containerRef = useRef();
@@ -119,6 +135,7 @@ export default function NewsDetail() {
 
   const categoryName = news.kategori || news.category || "Berita Sekolah";
   const badge = getCategoryBadge(categoryName);
+  const youtubeId = getYoutubeId(news.videoUrl);
 
   return (
     <div
@@ -163,18 +180,33 @@ export default function NewsDetail() {
               </div>
             </div>
 
-            {/* Media Utama (Foto Pertama / Video) */}
+            {/* Media Utama (Video YouTube / Video File / Foto Pertama) */}
             {(news.videoUrl || news.imageUrl) && (
               <div className="w-full bg-slate-900 rounded-2xl overflow-hidden shadow-sm">
                 {news.videoUrl ? (
-                  <div className="w-full bg-black flex items-center justify-center">
-                    <video
-                      src={news.videoUrl}
-                      controls
-                      playsInline
-                      className="w-full max-h-112.5 object-contain mx-auto"
-                    />
-                  </div>
+                  youtubeId ? (
+                    // Video dari YouTube -> render sebagai iframe embed, responsif 16:9
+                    <div className="w-full aspect-video bg-black">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${youtubeId}`}
+                        title={news.title}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : (
+                    // Video file langsung (mis. Cloudinary) -> render dengan tag <video>
+                    <div className="w-full bg-black flex items-center justify-center">
+                      <video
+                        src={news.videoUrl}
+                        controls
+                        playsInline
+                        className="w-full max-h-112.5 object-contain mx-auto"
+                      />
+                    </div>
+                  )
                 ) : (
                   <img
                     src={news.imageUrl}
@@ -186,8 +218,6 @@ export default function NewsDetail() {
             )}
 
             {/* Isi Konten Berita (Render langsung dari HTML Rich Text) */}
-            {/* Isi Konten Berita (Otomatis Rapi & Mendukung Baris Baru) */}
-            {/* Isi Konten Berita */}
             <div
               className="text-slate-700 leading-relaxed font-normal text-justify sm:text-lg space-y-4 prose prose-slate max-w-none [&>ol]:list-decimal [&>ol]:pl-5 [&>ul]:list-disc [&>ul]:pl-5 [&>li]:mb-2"
               dangerouslySetInnerHTML={{ __html: news.content }}
