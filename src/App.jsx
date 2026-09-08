@@ -21,6 +21,7 @@ import Footer from "./components/common/Footer";
 import TeacherStaff from "./pages/Teachers-Staff";
 import NewsDetail from "./pages/NewsDetail";
 import VideosPage from "./pages/Videos";
+import Sahabat from "./pages/Sahabat";
 
 // Komponen Otomatis Scroll ke Atas saat Pindah Page
 function ScrollToTop() {
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/teacher-staff" element={<TeacherStaff />} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/news" element={<News />} />
+          <Route path="/sahabat" element={<Sahabat />} />
           <Route path="/news/:id" element={<NewsDetail />} />
           <Route path="/videos" element={<VideosPage />} />
         </Route>

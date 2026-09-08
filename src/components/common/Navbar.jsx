@@ -17,6 +17,7 @@ export default function Navbar() {
     { name: "Akademik", href: "/programs" },
     { name: "Guru & Staff", href: "/teacher-staff" },
     { name: "Berita", href: "/news" },
+    { name: "Sahabat Sekolah Dasar", href: "/sahabat" },
   ];
 
   useGSAP(
