@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   Play,
   Video,
@@ -11,6 +11,10 @@ import {
   ArrowUpAZ,
   Sparkles,
 } from "lucide-react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 /**
  * ============================================================================
@@ -166,20 +170,51 @@ const FILTERS = [
 ];
 
 // ---------------------------------------------------------------------------
-// 3. KARTU VIDEO (versi grid biasa)
+// 3. KARTU VIDEO (versi grid biasa) — dengan micro-interaction GSAP di hover
 // ---------------------------------------------------------------------------
-function VideoCard({ video, onOpen }) {
+function VideoCard({ video, onOpen, className = "" }) {
   const meta = SOURCE_META[video.source];
   const Icon = meta.icon;
+  const cardRef = useRef(null);
+  const iconRef = useRef(null);
 
   let thumbnail = video.thumbnail;
   if (!thumbnail && video.source === "youtube")
     thumbnail = getYoutubeThumb(video.url);
 
+  const handleEnter = () => {
+    gsap.to(cardRef.current, {
+      y: -6,
+      duration: 0.35,
+      ease: "power2.out",
+    });
+    gsap.to(iconRef.current, {
+      scale: 1.12,
+      duration: 0.35,
+      ease: "back.out(2)",
+    });
+  };
+
+  const handleLeave = () => {
+    gsap.to(cardRef.current, {
+      y: 0,
+      duration: 0.4,
+      ease: "power2.out",
+    });
+    gsap.to(iconRef.current, {
+      scale: 1,
+      duration: 0.3,
+      ease: "power2.out",
+    });
+  };
+
   return (
     <button
+      ref={cardRef}
       onClick={() => onOpen(video)}
-      className="group relative flex flex-col text-left rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      className={`video-card group relative flex flex-col text-left rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-lg transition-shadow duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${className}`}
     >
       <div className="relative aspect-video bg-slate-900 overflow-hidden">
         {thumbnail ? (
@@ -194,7 +229,10 @@ function VideoCard({ video, onOpen }) {
           </div>
         )}
         <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors flex items-center justify-center">
-          <span className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-md scale-90 group-hover:scale-100 transition-transform">
+          <span
+            ref={iconRef}
+            className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-md"
+          >
             <Play className="w-5 h-5 text-indigo-600 fill-indigo-600 ml-0.5" />
           </span>
         </div>
@@ -230,15 +268,26 @@ function VideoCard({ video, onOpen }) {
 function FeaturedCard({ video, onOpen }) {
   const meta = SOURCE_META[video.source];
   const Icon = meta.icon;
+  const cardRef = useRef(null);
 
   let thumbnail = video.thumbnail;
   if (!thumbnail && video.source === "youtube")
     thumbnail = getYoutubeThumb(video.url);
 
+  const handleEnter = () => {
+    gsap.to(cardRef.current, { y: -4, duration: 0.3, ease: "power2.out" });
+  };
+  const handleLeave = () => {
+    gsap.to(cardRef.current, { y: 0, duration: 0.35, ease: "power2.out" });
+  };
+
   return (
     <button
+      ref={cardRef}
       onClick={() => onOpen(video)}
-      className="group relative flex flex-col sm:flex-row w-full text-left rounded-2xl overflow-hidden bg-white border border-indigo-100 shadow-sm hover:shadow-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      className="featured-card group relative flex flex-col sm:flex-row w-full text-left rounded-2xl overflow-hidden bg-white border border-indigo-100 shadow-sm hover:shadow-lg transition-shadow duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
     >
       <div className="relative sm:w-72 aspect-video sm:aspect-auto shrink-0 bg-slate-900 overflow-hidden">
         {thumbnail ? (
@@ -286,45 +335,94 @@ function FeaturedCard({ video, onOpen }) {
 }
 
 // ---------------------------------------------------------------------------
-// 4. MODAL PEMUTAR VIDEO
+// 4. MODAL PEMUTAR VIDEO — transisi masuk/keluar pakai GSAP
 // ---------------------------------------------------------------------------
 function VideoModal({ video, onClose }) {
-  if (!video) return null;
-  const meta = SOURCE_META[video.source];
+  const overlayRef = useRef(null);
+  const panelRef = useRef(null);
+  const [rendered, setRendered] = useState(video);
+
+  // Simpan video terakhir supaya animasi keluar tetap punya konten saat video di-null-kan.
+  // Pola resmi React: setState dipanggil langsung di badan komponen (bukan di useEffect),
+  // dengan guard "video !== rendered" supaya tidak infinite loop. Ini menghindari
+  // ESLint error react-hooks/set-state-in-effect.
+  if (video && video !== rendered) {
+    setRendered(video);
+  }
+
+  useGSAP(() => {
+    if (!overlayRef.current || !panelRef.current) return;
+
+    if (video) {
+      gsap.set(overlayRef.current, { display: "flex" });
+      gsap.fromTo(
+        overlayRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.25, ease: "power1.out" },
+      );
+      gsap.fromTo(
+        panelRef.current,
+        { opacity: 0, y: 24, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "power3.out" },
+      );
+    } else if (overlayRef.current.style.display !== "none") {
+      gsap.to(panelRef.current, {
+        opacity: 0,
+        y: 16,
+        scale: 0.97,
+        duration: 0.22,
+        ease: "power1.in",
+      });
+      gsap.to(overlayRef.current, {
+        opacity: 0,
+        duration: 0.25,
+        ease: "power1.in",
+        onComplete: () => {
+          gsap.set(overlayRef.current, { display: "none" });
+        },
+      });
+    }
+  }, [video]);
+
+  if (!rendered) return null;
+  const meta = SOURCE_META[rendered.source];
   const Icon = meta.icon;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+      ref={overlayRef}
+      className="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
       onClick={onClose}
+      style={{ display: "none" }}
     >
       <div
+        ref={panelRef}
         className="w-full max-w-3xl bg-white rounded-2xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="aspect-video bg-black">
-          {video.source === "youtube" && (
+          {rendered.source === "youtube" && (
             <iframe
               className="w-full h-full"
-              src={getYoutubeEmbed(video.url) + "?autoplay=1"}
-              title={video.title}
+              src={getYoutubeEmbed(rendered.url) + "?autoplay=1"}
+              title={rendered.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
           )}
-          {video.source === "cloudinary" && (
+          {rendered.source === "cloudinary" && (
             <video
               className="w-full h-full"
-              src={video.url}
+              src={rendered.url}
               controls
               autoPlay
             />
           )}
-          {video.source === "drive" && (
+          {rendered.source === "drive" && (
             <iframe
               className="w-full h-full"
-              src={getDriveEmbed(video.url)}
-              title={video.title}
+              src={getDriveEmbed(rendered.url)}
+              title={rendered.title}
               allow="autoplay"
               allowFullScreen
             />
@@ -340,10 +438,10 @@ function VideoModal({ video, onClose }) {
               {meta.label}
             </span>
             <h3 className="text-base font-bold text-slate-900 leading-snug">
-              {video.title}
+              {rendered.title}
             </h3>
             <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-              {video.description}
+              {rendered.description}
             </p>
           </div>
           <button
@@ -357,7 +455,7 @@ function VideoModal({ video, onClose }) {
 
         <div className="px-5 pb-5">
           <a
-            href={video.url}
+            href={rendered.url}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700"
@@ -378,6 +476,9 @@ export default function Sahabat() {
   const [query, setQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("newest"); // "newest" | "oldest"
   const [selected, setSelected] = useState(null);
+
+  const containerRef = useRef(null);
+  const gridRef = useRef(null);
 
   // Postingan terbaru: 1 video dengan tanggal paling baru dari SELURUH data
   const latestVideo = useMemo(() => {
@@ -410,17 +511,102 @@ export default function Sahabat() {
     return c;
   }, []);
 
+  // --- Animasi masuk halaman (hero, badge filter, featured card) ---
+  useGSAP(
+    () => {
+      const tl = gsap.timeline();
+
+      tl.fromTo(
+        ".gsap-hero-badge",
+        { opacity: 0, y: -12 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+      )
+        .fromTo(
+          ".gsap-hero-title",
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
+          "-=0.3",
+        )
+        .fromTo(
+          ".gsap-hero-desc",
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+          "-=0.35",
+        )
+        .fromTo(
+          ".gsap-section-label",
+          { opacity: 0, x: -10 },
+          { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" },
+          "-=0.2",
+        )
+        .fromTo(
+          ".featured-card",
+          { opacity: 0, y: 24, scale: 0.98 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out" },
+          "-=0.25",
+        )
+        .fromTo(
+          ".gsap-controls",
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+          "-=0.3",
+        );
+    },
+    { scope: containerRef },
+  );
+
+  // --- Stagger animasi tiap kali grid berubah (filter/search/sort) ---
+  useGSAP(
+    () => {
+      if (!gridRef.current) return;
+      const cards = gridRef.current.querySelectorAll(".video-card");
+      if (cards.length === 0) return;
+
+      gsap.fromTo(
+        cards,
+        { opacity: 0, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.45,
+          stagger: 0.06,
+          ease: "power2.out",
+        },
+      );
+    },
+    { scope: gridRef, dependencies: [filtered] },
+  );
+
+  // --- Feedback kecil saat tombol filter ditekan ---
+  const handleFilterClick = (key, e) => {
+    setActiveFilter(key);
+    gsap.fromTo(
+      e.currentTarget,
+      { scale: 0.94 },
+      { scale: 1, duration: 0.3, ease: "back.out(3)" },
+    );
+  };
+
+  const handleSortClick = (order, e) => {
+    setSortOrder(order);
+    gsap.fromTo(
+      e.currentTarget,
+      { scale: 0.94 },
+      { scale: 1, duration: 0.3, ease: "back.out(3)" },
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div ref={containerRef} className="min-h-screen bg-slate-50">
       {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-b from-indigo-50 via-slate-50 to-slate-50 border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-6 py-14">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold mb-5">
+          <span className="gsap-hero-badge opacity-0 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
             Dokumentasi Sahabat Sekolah Dasar
           </span>
 
-          <p className="text-slate-500 max-w-lg mt-3 text-[15px] leading-relaxed">
+          <p className="gsap-hero-desc opacity-0 text-slate-500 max-w-lg mt-3 text-[15px] leading-relaxed">
             Rekaman kegiatan program Sahabat Sekolah Dasar SDN 47 Kota Jambi —
             mulai dari pendampingan, kunjungan, hingga kolaborasi bersama
             sekolah.
@@ -430,7 +616,7 @@ export default function Sahabat() {
 
       {/* POSTINGAN TERBARU */}
       <section className="max-w-6xl mx-auto px-6 pt-10">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="gsap-section-label opacity-0 flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4 text-indigo-500" />
           <h2 className="text-sm font-bold text-slate-900 tracking-tight">
             Postingan Terbaru
@@ -440,7 +626,7 @@ export default function Sahabat() {
       </section>
 
       {/* KONTROL: pencarian + urutkan + filter sumber */}
-      <div className="max-w-6xl mx-auto px-6 pt-10">
+      <div className="gsap-controls opacity-0 max-w-6xl mx-auto px-6 pt-10">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
             <div className="relative w-full sm:w-72">
@@ -456,7 +642,7 @@ export default function Sahabat() {
             {/* Urutkan berdasarkan tanggal */}
             <div className="flex gap-2">
               <button
-                onClick={() => setSortOrder("newest")}
+                onClick={(e) => handleSortClick("newest", e)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border transition-colors ${
                   sortOrder === "newest"
                     ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
@@ -467,7 +653,7 @@ export default function Sahabat() {
                 Terbaru
               </button>
               <button
-                onClick={() => setSortOrder("oldest")}
+                onClick={(e) => handleSortClick("oldest", e)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border transition-colors ${
                   sortOrder === "oldest"
                     ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
@@ -485,7 +671,7 @@ export default function Sahabat() {
             {FILTERS.map((f) => (
               <button
                 key={f.key}
-                onClick={() => setActiveFilter(f.key)}
+                onClick={(e) => handleFilterClick(f.key, e)}
                 className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
                   activeFilter === f.key
                     ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
@@ -505,7 +691,7 @@ export default function Sahabat() {
       </div>
 
       {/* GRID VIDEO */}
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main ref={gridRef} className="max-w-6xl mx-auto px-6 py-8">
         {filtered.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-slate-400 text-sm">
@@ -515,7 +701,12 @@ export default function Sahabat() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((video) => (
-              <VideoCard key={video.id} video={video} onOpen={setSelected} />
+              <VideoCard
+                key={video.id}
+                video={video}
+                onOpen={setSelected}
+                className="opacity-0"
+              />
             ))}
           </div>
         )}

@@ -10,6 +10,7 @@ import AdminNews from "./AdminNews";
 import AdminGallery from "./AdminGallery";
 import AdminContent from "./AdminContent";
 import AdminVideo from "./AdminVideo";
+import AdminSahabatSD from "./AdminSahabatSD";
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(null);
@@ -72,6 +73,14 @@ export default function AdminRoutes() {
           element={
             <ProtectedRoute>
               <AdminContent />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="sahabat"
+          element={
+            <ProtectedRoute>
+              <AdminSahabatSD />
             </ProtectedRoute>
           }
         />

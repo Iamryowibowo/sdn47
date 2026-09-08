@@ -135,6 +135,12 @@ export default function AdminDashboard() {
             <span className="text-sm">Kelola Galeri</span>
           </Link>
           <Link
+            to="/admin/sahabat"
+            className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all"
+          >
+            <span className="text-sm">Kelola Sahabat SD</span>
+          </Link>
+          <Link
             to="/admin/content"
             className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all"
           >
