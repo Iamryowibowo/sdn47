@@ -1,7 +1,7 @@
-import { useRef, useState, useEffect } from "react"; // 1. Tambahkan useState & useEffect
+import { useRef, useState, useEffect } from "react";
 import { signOut } from "firebase/auth";
-import { auth, db } from "../../config/firebase"; // 2. Tambahkan import db (Firestore)
-import { collection, getDocs } from "firebase/firestore"; // 3. Import modul Firestore
+import { auth, db } from "../../config/firebase";
+import { collection, getDocs } from "firebase/firestore";
 import { useNavigate, Link } from "react-router-dom";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -12,11 +12,11 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const dashboardRef = useRef();
 
-  // State untuk menampung jumlah data statistik secara real
+  // State untuk menampung jumlah data statistik secara real (termasuk Sahabat SD)
   const [stats, setStats] = useState({
     totalNews: 0,
     totalGallery: 0,
-    totalAgenda: 3, // Sementara kita taruh placeholder dulu
+    totalSahabatVideos: 0,
   });
 
   // ----- AMBIL DATA STATISTIK DARI FIRESTORE -----
@@ -26,15 +26,20 @@ export default function AdminDashboard() {
         // A. Ambil total dokumen dari koleksi "news"
         const newsSnapshot = await getDocs(collection(db, "news"));
 
-        // B. Ambil total dokumen dari koleksi "gallery" (antisipasi kalau nanti dibuat)
+        // B. Ambil total dokumen dari koleksi "gallery"
         const gallerySnapshot = await getDocs(collection(db, "gallery")).catch(
           () => ({ size: 0 }),
         );
 
+        // C. Ambil total dokumen dari koleksi "sahabat_videos"
+        const sahabatSnapshot = await getDocs(
+          collection(db, "sahabat_videos"),
+        ).catch(() => ({ size: 0 }));
+
         setStats({
           totalNews: newsSnapshot.size,
           totalGallery: gallerySnapshot.size,
-          totalAgenda: 3, // Tetap 3 dulu sesuai request bertahap
+          totalSahabatVideos: sahabatSnapshot.size,
         });
       } catch (error) {
         console.error("Gagal mengambil data statistik dashboard:", error);
@@ -49,7 +54,6 @@ export default function AdminDashboard() {
     () => {
       const tl = gsap.timeline();
 
-      // 1. Munculkan Sidebar dari kiri & Main Content fade-in
       tl.from(".gsap-sidebar", {
         x: -80,
         opacity: 0,
@@ -61,8 +65,6 @@ export default function AdminDashboard() {
         { y: -20, opacity: 0, duration: 0.4, ease: "power2.out" },
         "-=0.3",
       );
-
-      // 2. Stagger / Masuk berurutan untuk kartu statistik
       tl.from(
         ".gsap-stat-card",
         {
@@ -82,7 +84,7 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigate("/admin"); // Lempar kembali ke halaman login
+      navigate("/admin");
     } catch {
       alert("Gagal keluar, coba lagi.");
     }
@@ -93,7 +95,7 @@ export default function AdminDashboard() {
       ref={dashboardRef}
       className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-800"
     >
-      {/* SIDEBAR (Nuansa Biru Gelap Enterprise) */}
+      {/* SIDEBAR */}
       <aside className="gsap-sidebar w-full md:w-64 bg-slate-900 text-white flex flex-col p-6 space-y-8 shadow-xl">
         <div className="flex items-center gap-3 border-b border-slate-800 pb-5">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-white shadow-md">
@@ -126,7 +128,7 @@ export default function AdminDashboard() {
             to="/admin/video"
             className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all"
           >
-            <span className="text-sm">Kelola Video</span>
+            <span className="text-sm">Kelola Video Umum</span>
           </Link>
           <Link
             to="/admin/gallery"
@@ -157,9 +159,8 @@ export default function AdminDashboard() {
         </button>
       </aside>
 
-      {/* KONTEN UTAMA (Nuansa Putih Bersih) */}
+      {/* KONTEN UTAMA */}
       <main className="grow p-8 lg:p-12 space-y-8 overflow-y-auto">
-        {/* Header Konten */}
         <div className="gsap-content-head flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-6">
           <div>
             <h2 className="text-3xl font-extrabold text-slate-950 tracking-tight">
@@ -174,7 +175,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* GRID KARTU STATISTIK (GSAP Staggered) */}
+        {/* GRID KARTU STATISTIK */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Kartu 1: Berita */}
           <div className="gsap-stat-card bg-white p-6 rounded-2xl shadow-md border border-slate-100 flex flex-col justify-between h-40">
@@ -196,7 +197,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Kartu 2: Galeri */}
+          {/* Kartu 2: Galeri Foto */}
           <div className="gsap-stat-card bg-white p-6 rounded-2xl shadow-md border border-slate-100 flex flex-col justify-between h-40">
             <div className="flex justify-between items-start">
               <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
@@ -216,22 +217,22 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Kartu 3: Agenda Kegiatan */}
+          {/* Kartu 3: Sahabat Sekolah Dasar */}
           <div className="gsap-stat-card bg-white p-6 rounded-2xl shadow-md border border-slate-100 flex flex-col justify-between h-40">
             <div className="flex justify-between items-start">
               <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-                Agenda Terdekat
+                Video Sahabat SD
               </span>
-              <span className="p-2.5 bg-amber-50 text-amber-600 rounded-xl font-bold text-xs">
-                Kalender
+              <span className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-xs">
+                Program Khusus
               </span>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-extrabold text-slate-900 tracking-tight">
-                {stats.totalAgenda}
+                {stats.totalSahabatVideos}
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                Acara sekolah aktif
+                Video kegiatan aktif
               </span>
             </div>
           </div>
@@ -245,15 +246,15 @@ export default function AdminDashboard() {
             </h3>
             <p className="text-sm text-blue-100 max-w-xl leading-relaxed">
               Kamu bisa menambah, mengubah, atau menghapus informasi publik
-              sekolah melalui menu navigasi di bilah samping kiri secara
-              langsung.
+              sekolah termasuk program Sahabat Sekolah Dasar melalui menu di
+              bilah samping kiri.
             </p>
           </div>
           <Link
-            to="/admin/news"
+            to="/admin/sahabat"
             className="px-6 py-3.5 bg-white text-blue-600 hover:bg-blue-50 font-semibold rounded-xl text-sm shadow-md transition-colors whitespace-nowrap text-center"
           >
-            Mulai Kelola Berita
+            Kelola Sahabat SD Sekarang
           </Link>
         </div>
       </main>
