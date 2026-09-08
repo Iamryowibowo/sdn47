@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Play,
   Video,
@@ -10,132 +10,61 @@ import {
   ArrowDownAZ,
   ArrowUpAZ,
   Sparkles,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-
-gsap.registerPlugin(useGSAP);
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { db } from "../config/firebase"; // sesuaikan path ke file konfigurasi Firebase kamu
 
 /**
  * ============================================================================
  * DOKUMENTASI SAHABAT SEKOLAH DASAR
  * SDN 47 Kota Jambi
  * ============================================================================
- *
- * Halaman ini menampilkan video dari 3 sumber:
- *  1. YouTube   -> disimpan sebagai link (embed via iframe youtube-nocookie)
- *  2. Cloudinary-> disimpan sebagai link .mp4 (diputar dengan <video>)
- *  3. Google Drive -> disimpan sebagai link (embed via iframe /preview)
- *
- * Data VIDEO_DEMO di bawah adalah CONTOH. Di proyek aslimu, ganti dengan
- * data dari Firestore. Lihat blok "INTEGRASI FIRESTORE" di paling bawah file.
- *
- * Struktur dokumen Firestore yang disarankan (koleksi "videos"):
- * {
- *   id: string,
- *   title: string,
- *   description: string,
- *   source: "youtube" | "cloudinary" | "drive",
- *   url: string,
- *   category: string,
- *   date: string,        // "2026-08-17"
- *   thumbnail?: string,  // opsional
- * }
- * ============================================================================
  */
 
 // ---------------------------------------------------------------------------
-// 1. DATA CONTOH (ganti dengan data dari Firestore)
+// 1. HELPER: konversi url asli -> url embed
 // ---------------------------------------------------------------------------
-const VIDEO_DEMO = [
-  {
-    id: "1",
-    title: "Upacara Bendera & Pengumuman Juara Lomba",
-    description:
-      "Dokumentasi upacara bendera hari Senin sekaligus penyerahan piala untuk siswa berprestasi.",
-    source: "youtube",
-    url: "https://www.youtube.com/watch?v=ysz5S6PUM-U",
-    category: "Kegiatan",
-    date: "2026-08-17",
-  },
-  {
-    id: "2",
-    title: "Festival Kuliner Nusantara SDN 47",
-    description:
-      "Keseruan siswa-siswi memperkenalkan makanan tradisional dari berbagai daerah di Indonesia.",
-    source: "cloudinary",
-    url: "https://res.cloudinary.com/demo/video/upload/v1690000000/sea_turtle.mp4",
-    category: "Kegiatan",
-    date: "2026-08-02",
-  },
-  {
-    id: "3",
-    title: "Latihan Pramuka Mingguan",
-    description:
-      "Rekaman kegiatan kepramukaan rutin setiap hari Jumat, disimpan di Google Drive sekolah.",
-    source: "drive",
-    url: "https://drive.google.com/file/d/1BxKM6M4T0hkq6XoTk5wl3f5nJgL7mYqZ/view",
-    category: "Ekstrakurikuler",
-    date: "2026-07-25",
-  },
-  {
-    id: "4",
-    title: "Cerdas Cermat Antar Kelas",
-    description:
-      "Kompetisi cerdas cermat tingkat sekolah dalam rangka Bulan Bahasa.",
-    source: "youtube",
-    url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
-    category: "Akademik",
-    date: "2026-07-10",
-  },
-  {
-    id: "5",
-    title: "Praktik IPA: Percobaan Gunung Meletus",
-    description:
-      "Video pembelajaran hasil praktik siswa kelas 5 pada mata pelajaran IPA.",
-    source: "cloudinary",
-    url: "https://res.cloudinary.com/demo/video/upload/v1690000000/elephants.mp4",
-    category: "Pembelajaran",
-    date: "2026-06-30",
-  },
-  {
-    id: "6",
-    title: "Wisuda & Perpisahan Kelas 6",
-    description: "Momen haru pelepasan siswa kelas 6 tahun ajaran 2025/2026.",
-    source: "drive",
-    url: "https://drive.google.com/file/d/1CyMN7N5U1ilr7YpUl6xm4g6oKhM8nZrA/view",
-    category: "Kegiatan",
-    date: "2026-06-14",
-  },
-];
+function cleanUrl(rawUrl) {
+  if (!rawUrl) return "";
+  const match = rawUrl.match(/https?:\/\/[^\s\]"]+/);
+  return match ? match[0] : rawUrl;
+}
 
-// ---------------------------------------------------------------------------
-// 2. HELPER: konversi url asli -> url embed
-// ---------------------------------------------------------------------------
 function getYoutubeEmbed(url) {
-  const match = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  const clean = cleanUrl(url);
+  const match = clean.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
   const id = match ? match[1] : "";
   return `https://www.youtube-nocookie.com/embed/${id}`;
 }
 
 function getYoutubeThumb(url) {
-  const match = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  const clean = cleanUrl(url);
+  const match = clean.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
   const id = match ? match[1] : "";
   return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
 }
 
 function getDriveEmbed(url) {
-  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  const clean = cleanUrl(url);
+  const match = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
   const id = match ? match[1] : "";
   return `https://drive.google.com/file/d/${id}/preview`;
 }
 
 function formatTanggal(dateStr) {
-  return new Date(dateStr).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  if (!dateStr) return "";
+  try {
+    return new Date(dateStr).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    // eslint-disable-next-line no-unused-vars
+  } catch (e) {
+    return dateStr;
+  }
 }
 
 const SOURCE_META = {
@@ -170,51 +99,20 @@ const FILTERS = [
 ];
 
 // ---------------------------------------------------------------------------
-// 3. KARTU VIDEO (versi grid biasa) — dengan micro-interaction GSAP di hover
+// 2. KARTU VIDEO (versi grid biasa)
 // ---------------------------------------------------------------------------
-function VideoCard({ video, onOpen, className = "" }) {
-  const meta = SOURCE_META[video.source];
+function VideoCard({ video, onOpen }) {
+  const meta = SOURCE_META[video.source] || SOURCE_META.youtube;
   const Icon = meta.icon;
-  const cardRef = useRef(null);
-  const iconRef = useRef(null);
 
   let thumbnail = video.thumbnail;
   if (!thumbnail && video.source === "youtube")
     thumbnail = getYoutubeThumb(video.url);
 
-  const handleEnter = () => {
-    gsap.to(cardRef.current, {
-      y: -6,
-      duration: 0.35,
-      ease: "power2.out",
-    });
-    gsap.to(iconRef.current, {
-      scale: 1.12,
-      duration: 0.35,
-      ease: "back.out(2)",
-    });
-  };
-
-  const handleLeave = () => {
-    gsap.to(cardRef.current, {
-      y: 0,
-      duration: 0.4,
-      ease: "power2.out",
-    });
-    gsap.to(iconRef.current, {
-      scale: 1,
-      duration: 0.3,
-      ease: "power2.out",
-    });
-  };
-
   return (
     <button
-      ref={cardRef}
       onClick={() => onOpen(video)}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
-      className={`video-card group relative flex flex-col text-left rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-lg transition-shadow duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${className}`}
+      className="group relative flex flex-col text-left rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
     >
       <div className="relative aspect-video bg-slate-900 overflow-hidden">
         {thumbnail ? (
@@ -229,10 +127,7 @@ function VideoCard({ video, onOpen, className = "" }) {
           </div>
         )}
         <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors flex items-center justify-center">
-          <span
-            ref={iconRef}
-            className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-md"
-          >
+          <span className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-md scale-90 group-hover:scale-100 transition-transform">
             <Play className="w-5 h-5 text-indigo-600 fill-indigo-600 ml-0.5" />
           </span>
         </div>
@@ -263,31 +158,20 @@ function VideoCard({ video, onOpen, className = "" }) {
 }
 
 // ---------------------------------------------------------------------------
-// 3b. KARTU SOROTAN — dipakai di bagian "Postingan Terbaru"
+// 3. KARTU SOROTAN — dipakai di bagian "Postingan Terbaru"
 // ---------------------------------------------------------------------------
 function FeaturedCard({ video, onOpen }) {
-  const meta = SOURCE_META[video.source];
+  const meta = SOURCE_META[video.source] || SOURCE_META.youtube;
   const Icon = meta.icon;
-  const cardRef = useRef(null);
 
   let thumbnail = video.thumbnail;
   if (!thumbnail && video.source === "youtube")
     thumbnail = getYoutubeThumb(video.url);
 
-  const handleEnter = () => {
-    gsap.to(cardRef.current, { y: -4, duration: 0.3, ease: "power2.out" });
-  };
-  const handleLeave = () => {
-    gsap.to(cardRef.current, { y: 0, duration: 0.35, ease: "power2.out" });
-  };
-
   return (
     <button
-      ref={cardRef}
       onClick={() => onOpen(video)}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
-      className="featured-card group relative flex flex-col sm:flex-row w-full text-left rounded-2xl overflow-hidden bg-white border border-indigo-100 shadow-sm hover:shadow-lg transition-shadow duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      className="group relative flex flex-col sm:flex-row w-full text-left rounded-2xl overflow-hidden bg-white border border-indigo-100 shadow-sm hover:shadow-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
     >
       <div className="relative sm:w-72 aspect-video sm:aspect-auto shrink-0 bg-slate-900 overflow-hidden">
         {thumbnail ? (
@@ -335,94 +219,45 @@ function FeaturedCard({ video, onOpen }) {
 }
 
 // ---------------------------------------------------------------------------
-// 4. MODAL PEMUTAR VIDEO — transisi masuk/keluar pakai GSAP
+// 4. MODAL PEMUTAR VIDEO
 // ---------------------------------------------------------------------------
 function VideoModal({ video, onClose }) {
-  const overlayRef = useRef(null);
-  const panelRef = useRef(null);
-  const [rendered, setRendered] = useState(video);
-
-  // Simpan video terakhir supaya animasi keluar tetap punya konten saat video di-null-kan.
-  // Pola resmi React: setState dipanggil langsung di badan komponen (bukan di useEffect),
-  // dengan guard "video !== rendered" supaya tidak infinite loop. Ini menghindari
-  // ESLint error react-hooks/set-state-in-effect.
-  if (video && video !== rendered) {
-    setRendered(video);
-  }
-
-  useGSAP(() => {
-    if (!overlayRef.current || !panelRef.current) return;
-
-    if (video) {
-      gsap.set(overlayRef.current, { display: "flex" });
-      gsap.fromTo(
-        overlayRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.25, ease: "power1.out" },
-      );
-      gsap.fromTo(
-        panelRef.current,
-        { opacity: 0, y: 24, scale: 0.96 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "power3.out" },
-      );
-    } else if (overlayRef.current.style.display !== "none") {
-      gsap.to(panelRef.current, {
-        opacity: 0,
-        y: 16,
-        scale: 0.97,
-        duration: 0.22,
-        ease: "power1.in",
-      });
-      gsap.to(overlayRef.current, {
-        opacity: 0,
-        duration: 0.25,
-        ease: "power1.in",
-        onComplete: () => {
-          gsap.set(overlayRef.current, { display: "none" });
-        },
-      });
-    }
-  }, [video]);
-
-  if (!rendered) return null;
-  const meta = SOURCE_META[rendered.source];
+  if (!video) return null;
+  const meta = SOURCE_META[video.source] || SOURCE_META.youtube;
   const Icon = meta.icon;
 
   return (
     <div
-      ref={overlayRef}
-      className="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
       onClick={onClose}
-      style={{ display: "none" }}
     >
       <div
-        ref={panelRef}
         className="w-full max-w-3xl bg-white rounded-2xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="aspect-video bg-black">
-          {rendered.source === "youtube" && (
+          {video.source === "youtube" && (
             <iframe
               className="w-full h-full"
-              src={getYoutubeEmbed(rendered.url) + "?autoplay=1"}
-              title={rendered.title}
+              src={getYoutubeEmbed(video.url) + "?autoplay=1"}
+              title={video.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
           )}
-          {rendered.source === "cloudinary" && (
+          {video.source === "cloudinary" && (
             <video
               className="w-full h-full"
-              src={rendered.url}
+              src={video.url}
               controls
               autoPlay
             />
           )}
-          {rendered.source === "drive" && (
+          {video.source === "drive" && (
             <iframe
               className="w-full h-full"
-              src={getDriveEmbed(rendered.url)}
-              title={rendered.title}
+              src={getDriveEmbed(video.url)}
+              title={video.title}
               allow="autoplay"
               allowFullScreen
             />
@@ -438,10 +273,10 @@ function VideoModal({ video, onClose }) {
               {meta.label}
             </span>
             <h3 className="text-base font-bold text-slate-900 leading-snug">
-              {rendered.title}
+              {video.title}
             </h3>
             <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-              {rendered.description}
+              {video.description}
             </p>
           </div>
           <button
@@ -455,7 +290,7 @@ function VideoModal({ video, onClose }) {
 
         <div className="px-5 pb-5">
           <a
-            href={rendered.url}
+            href={cleanUrl(video.url)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700"
@@ -472,28 +307,70 @@ function VideoModal({ video, onClose }) {
 // 5. HALAMAN UTAMA
 // ---------------------------------------------------------------------------
 export default function Sahabat() {
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  const [query, setQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState("newest"); // "newest" | "oldest"
+  const [queryText, setQueryText] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
   const [selected, setSelected] = useState(null);
 
-  const containerRef = useRef(null);
-  const gridRef = useRef(null);
+  useEffect(() => {
+    let mounted = true;
 
-  // Postingan terbaru: 1 video dengan tanggal paling baru dari SELURUH data
-  const latestVideo = useMemo(() => {
-    return [...VIDEO_DEMO].sort(
-      (a, b) => new Date(b.date) - new Date(a.date),
-    )[0];
+    async function loadFirebaseData() {
+      try {
+        console.log("Menghubungkan ke Firestore (koleksi: sahabat_videos)...");
+        const qRef = query(
+          collection(db, "sahabat_videos"),
+          orderBy("date", "desc"),
+        );
+        const snap = await getDocs(qRef);
+
+        console.log(`Berhasil mengambil ${snap.docs.length} dokumen.`);
+        const dataList = snap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        if (mounted) {
+          setVideos(dataList);
+        }
+      } catch (err) {
+        console.error("Gagal mengambil data video dari Firestore:", err);
+        if (mounted) {
+          setErrorMsg(
+            "Gagal memuat video dari database. Pastikan koneksi dan Rules Firestore sudah benar. (" +
+              err.message +
+              ")",
+          );
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadFirebaseData();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
+  const latestVideo = useMemo(() => {
+    if (videos.length === 0) return null;
+    return [...videos].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+  }, [videos]);
+
   const filtered = useMemo(() => {
-    const result = VIDEO_DEMO.filter((v) => {
+    const result = videos.filter((v) => {
       const matchSource = activeFilter === "all" || v.source === activeFilter;
       const matchQuery =
-        query.trim() === "" ||
-        v.title.toLowerCase().includes(query.toLowerCase()) ||
-        v.category.toLowerCase().includes(query.toLowerCase());
+        queryText.trim() === "" ||
+        (v.title || "").toLowerCase().includes(queryText.toLowerCase()) ||
+        (v.category || "").toLowerCase().includes(queryText.toLowerCase());
       return matchSource && matchQuery;
     });
 
@@ -503,110 +380,27 @@ export default function Sahabat() {
     });
 
     return result;
-  }, [activeFilter, query, sortOrder]);
+  }, [videos, activeFilter, queryText, sortOrder]);
 
   const counts = useMemo(() => {
-    const c = { all: VIDEO_DEMO.length, youtube: 0, cloudinary: 0, drive: 0 };
-    VIDEO_DEMO.forEach((v) => (c[v.source] += 1));
+    const c = { all: videos.length, youtube: 0, cloudinary: 0, drive: 0 };
+    videos.forEach((v) => {
+      if (c[v.source] !== undefined) c[v.source] += 1;
+    });
     return c;
-  }, []);
-
-  // --- Animasi masuk halaman (hero, badge filter, featured card) ---
-  useGSAP(
-    () => {
-      const tl = gsap.timeline();
-
-      tl.fromTo(
-        ".gsap-hero-badge",
-        { opacity: 0, y: -12 },
-        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
-      )
-        .fromTo(
-          ".gsap-hero-title",
-          { opacity: 0, y: 16 },
-          { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
-          "-=0.3",
-        )
-        .fromTo(
-          ".gsap-hero-desc",
-          { opacity: 0, y: 12 },
-          { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
-          "-=0.35",
-        )
-        .fromTo(
-          ".gsap-section-label",
-          { opacity: 0, x: -10 },
-          { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" },
-          "-=0.2",
-        )
-        .fromTo(
-          ".featured-card",
-          { opacity: 0, y: 24, scale: 0.98 },
-          { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out" },
-          "-=0.25",
-        )
-        .fromTo(
-          ".gsap-controls",
-          { opacity: 0, y: 12 },
-          { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
-          "-=0.3",
-        );
-    },
-    { scope: containerRef },
-  );
-
-  // --- Stagger animasi tiap kali grid berubah (filter/search/sort) ---
-  useGSAP(
-    () => {
-      if (!gridRef.current) return;
-      const cards = gridRef.current.querySelectorAll(".video-card");
-      if (cards.length === 0) return;
-
-      gsap.fromTo(
-        cards,
-        { opacity: 0, y: 20 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.45,
-          stagger: 0.06,
-          ease: "power2.out",
-        },
-      );
-    },
-    { scope: gridRef, dependencies: [filtered] },
-  );
-
-  // --- Feedback kecil saat tombol filter ditekan ---
-  const handleFilterClick = (key, e) => {
-    setActiveFilter(key);
-    gsap.fromTo(
-      e.currentTarget,
-      { scale: 0.94 },
-      { scale: 1, duration: 0.3, ease: "back.out(3)" },
-    );
-  };
-
-  const handleSortClick = (order, e) => {
-    setSortOrder(order);
-    gsap.fromTo(
-      e.currentTarget,
-      { scale: 0.94 },
-      { scale: 1, duration: 0.3, ease: "back.out(3)" },
-    );
-  };
+  }, [videos]);
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50">
       {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-b from-indigo-50 via-slate-50 to-slate-50 border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-6 py-14">
-          <span className="gsap-hero-badge opacity-0 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold mb-5">
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
             Dokumentasi Sahabat Sekolah Dasar
           </span>
 
-          <p className="gsap-hero-desc opacity-0 text-slate-500 max-w-lg mt-3 text-[15px] leading-relaxed">
+          <p className="text-slate-500 max-w-lg mt-3 text-[15px] leading-relaxed">
             Rekaman kegiatan program Sahabat Sekolah Dasar SDN 47 Kota Jambi —
             mulai dari pendampingan, kunjungan, hingga kolaborasi bersama
             sekolah.
@@ -614,128 +408,136 @@ export default function Sahabat() {
         </div>
       </section>
 
-      {/* POSTINGAN TERBARU */}
-      <section className="max-w-6xl mx-auto px-6 pt-10">
-        <div className="gsap-section-label opacity-0 flex items-center gap-2 mb-4">
-          <Sparkles className="w-4 h-4 text-indigo-500" />
-          <h2 className="text-sm font-bold text-slate-900 tracking-tight">
-            Postingan Terbaru
-          </h2>
+      {/* STATUS: loading */}
+      {loading && (
+        <div className="max-w-6xl mx-auto px-6 pt-10 flex items-center gap-2 text-slate-500 text-sm">
+          <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+          Memuat video dari database...
         </div>
-        <FeaturedCard video={latestVideo} onOpen={setSelected} />
-      </section>
+      )}
+
+      {/* STATUS: error */}
+      {!loading && errorMsg && (
+        <div className="max-w-6xl mx-auto px-6 pt-10">
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">
+            <AlertCircle className="w-5 h-5 shrink-0 text-red-500 mt-0.5" />
+            <div>
+              <p className="font-semibold">Terjadi Kesalahan</p>
+              <p className="mt-0.5">{errorMsg}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POSTINGAN TERBARU */}
+      {!loading && !errorMsg && latestVideo && (
+        <section className="max-w-6xl mx-auto px-6 pt-10">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-4 h-4 text-indigo-500" />
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+              Postingan Terbaru
+            </h2>
+          </div>
+          <FeaturedCard video={latestVideo} onOpen={setSelected} />
+        </section>
+      )}
 
       {/* KONTROL: pencarian + urutkan + filter sumber */}
-      <div className="gsap-controls opacity-0 max-w-6xl mx-auto px-6 pt-10">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Cari video..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              />
-            </div>
+      {!loading && !errorMsg && (
+        <div className="max-w-6xl mx-auto px-6 pt-10">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  value={queryText}
+                  onChange={(e) => setQueryText(e.target.value)}
+                  placeholder="Cari video..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+              </div>
 
-            {/* Urutkan berdasarkan tanggal */}
-            <div className="flex gap-2">
-              <button
-                onClick={(e) => handleSortClick("newest", e)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border transition-colors ${
-                  sortOrder === "newest"
-                    ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
-                    : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
-                }`}
-              >
-                <ArrowDownAZ className="w-3.5 h-3.5" />
-                Terbaru
-              </button>
-              <button
-                onClick={(e) => handleSortClick("oldest", e)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border transition-colors ${
-                  sortOrder === "oldest"
-                    ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
-                    : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
-                }`}
-              >
-                <ArrowUpAZ className="w-3.5 h-3.5" />
-                Terlama
-              </button>
-            </div>
-          </div>
-
-          {/* Filter sumber */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            {FILTERS.map((f) => (
-              <button
-                key={f.key}
-                onClick={(e) => handleFilterClick(f.key, e)}
-                className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
-                  activeFilter === f.key
-                    ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
-                    : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
-                }`}
-              >
-                {f.label}
-                <span
-                  className={`ml-1.5 text-xs ${activeFilter === f.key ? "text-indigo-100" : "text-slate-400"}`}
+              {/* Urutkan berdasarkan tanggal */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSortOrder("newest")}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border transition-colors ${
+                    sortOrder === "newest"
+                      ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                      : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
+                  }`}
                 >
-                  {counts[f.key]}
-                </span>
-              </button>
-            ))}
+                  <ArrowDownAZ className="w-3.5 h-3.5" />
+                  Terbaru
+                </button>
+                <button
+                  onClick={() => setSortOrder("oldest")}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border transition-colors ${
+                    sortOrder === "oldest"
+                      ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                      : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
+                  }`}
+                >
+                  <ArrowUpAZ className="w-3.5 h-3.5" />
+                  Terlama
+                </button>
+              </div>
+            </div>
+
+            {/* Filter sumber */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setActiveFilter(f.key)}
+                  className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+                    activeFilter === f.key
+                      ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                      : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
+                  }`}
+                >
+                  {f.label}
+                  <span
+                    className={`ml-1.5 text-xs ${activeFilter === f.key ? "text-indigo-100" : "text-slate-400"}`}
+                  >
+                    {counts[f.key]}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* GRID VIDEO */}
-      <main ref={gridRef} className="max-w-6xl mx-auto px-6 py-8">
-        {filtered.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-slate-400 text-sm">
-              Tidak ada video yang cocok dengan pencarianmu.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map((video) => (
-              <VideoCard
-                key={video.id}
-                video={video}
-                onOpen={setSelected}
-                className="opacity-0"
-              />
-            ))}
-          </div>
-        )}
-      </main>
+      {!loading && !errorMsg && (
+        <main className="max-w-6xl mx-auto px-6 py-8">
+          {filtered.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+              <p className="text-slate-500 text-sm font-medium">
+                Tidak ada video yang ditemukan.
+              </p>
+              <p className="text-slate-400 text-xs mt-1">
+                Pastikan koleksi{" "}
+                <span className="font-mono text-indigo-600">
+                  sahabat_videos
+                </span>{" "}
+                memiliki dokumen dengan field{" "}
+                <span className="font-mono text-indigo-600">date</span> dan
+                atribut yang sesuai.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filtered.map((video) => (
+                <VideoCard key={video.id} video={video} onOpen={setSelected} />
+              ))}
+            </div>
+          )}
+        </main>
+      )}
 
       <VideoModal video={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
-
-/**
- * ============================================================================
- * INTEGRASI FIRESTORE (dipakai di proyek asli kamu)
- * ============================================================================
- *
- * import { collection, getDocs, query, orderBy } from "firebase/firestore";
- * import { db } from "./firebaseConfig";
- *
- * async function fetchVideos() {
- *   const q = query(collection(db, "videos"), orderBy("date", "desc"));
- *   const snap = await getDocs(q);
- *   return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
- * }
- *
- * Ganti VIDEO_DEMO dengan:
- *   const [videos, setVideos] = useState([]);
- *   useEffect(() => { fetchVideos().then(setVideos); }, []);
- * lalu pakai `videos` di seluruh file sebagai pengganti `VIDEO_DEMO`.
- * (Urutan default sudah "desc" dari Firestore, tombol Terbaru/Terlama
- * di halaman ini tetap bisa membalik urutan di sisi client.)
- * ============================================================================
- */
