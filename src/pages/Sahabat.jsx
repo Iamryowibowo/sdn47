@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Play,
   Video,
@@ -12,6 +12,9 @@ import {
   Sparkles,
   Loader2,
   AlertCircle,
+  Share2,
+  Link as LinkIcon,
+  Check,
 } from "lucide-react";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../config/firebase"; // sesuaikan path ke file konfigurasi Firebase kamu
@@ -99,6 +102,182 @@ const FILTERS = [
 ];
 
 // ---------------------------------------------------------------------------
+// 2a. IKON BRAND (SVG custom — lucide-react tidak menyediakan ikon brand ini)
+// ---------------------------------------------------------------------------
+function WhatsAppIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.145-.145.32-.376.48-.564.16-.19.213-.324.32-.54.107-.217.054-.404-.043-.552-.098-.148-.667-1.612-.914-2.207-.241-.579-.487-.5-.67-.51-.173-.009-.371-.011-.57-.011-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.05 3.132 4.977 4.27 2.926 1.138 2.926.759 3.453.71.526-.049 1.758-.719 2.006-1.413.247-.694.247-1.29.173-1.413-.074-.124-.271-.198-.568-.347zM12.05 22c-1.578 0-3.13-.42-4.492-1.213l-.322-.19-3.34.876.892-3.257-.208-.334C3.42 16.484 3 15.005 3 13.5 3 8.253 7.253 4 12.5 4S22 8.253 22 13.5 17.747 22.75 12.5 22.75z" />
+    </svg>
+  );
+}
+
+function TelegramIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M21.198 3.297a1.5 1.5 0 0 0-1.55-.257L2.9 9.61c-.94.37-.933 1.71.01 2.07l4.42 1.7 1.716 5.574c.24.782 1.24.99 1.782.365l2.44-2.798 4.55 3.36c.716.53 1.735.14 1.9-.73l3.36-15.06a1.5 1.5 0 0 0-.88-1.79zM9.6 14.32l-3.42-1.31 11.6-6.9-8.18 8.21z" />
+    </svg>
+  );
+}
+
+function FacebookIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M13.5 21v-7.5h2.5l.4-3H13.5V8.2c0-.87.24-1.46 1.5-1.46h1.6V4.14C16.3 4.1 15.24 4 14 4c-2.48 0-4.18 1.51-4.18 4.28V10.5H7.3v3h2.52V21h3.68z" />
+    </svg>
+  );
+}
+
+function XIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z" />
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 2b. TOMBOL SHARE — native Web Share API dengan fallback menu
+// ---------------------------------------------------------------------------
+function ShareButton({ title, text, url, variant = "icon", className = "" }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const wrapperRef = useRef(null);
+
+  const shareUrl = cleanUrl(url) || url;
+  const encodedUrl = encodeURIComponent(shareUrl);
+  const encodedText = encodeURIComponent(text || title || "");
+
+  const canNativeShare =
+    typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(e) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  async function handleShareClick(e) {
+    e.stopPropagation();
+    if (canNativeShare) {
+      try {
+        await navigator.share({ title, text, url: shareUrl });
+      } catch (err) {
+        // AbortError kalau user membatalkan share sheet — aman diabaikan
+        if (err && err.name !== "AbortError") {
+          setOpen(true);
+        }
+      }
+    } else {
+      setOpen((o) => !o);
+    }
+  }
+
+  async function handleCopy(e) {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // ignore
+    }
+  }
+
+  const shareLinks = [
+    {
+      name: "WhatsApp",
+      href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
+      icon: WhatsAppIcon,
+      color: "text-emerald-600",
+      bg: "hover:bg-emerald-50",
+    },
+    {
+      name: "Telegram",
+      href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+      icon: TelegramIcon,
+      color: "text-sky-500",
+      bg: "hover:bg-sky-50",
+    },
+    {
+      name: "Facebook",
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+      icon: FacebookIcon,
+      color: "text-blue-600",
+      bg: "hover:bg-blue-50",
+    },
+    {
+      name: "X (Twitter)",
+      href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
+      icon: XIcon,
+      color: "text-slate-800",
+      bg: "hover:bg-slate-100",
+    },
+  ];
+
+  return (
+    <div className={`relative inline-block ${className}`} ref={wrapperRef}>
+      {variant === "icon" ? (
+        <button
+          onClick={handleShareClick}
+          aria-label="Bagikan video"
+          className="w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-sm ring-1 ring-slate-200 transition-colors"
+        >
+          <Share2 className="w-4 h-4 text-slate-600" />
+        </button>
+      ) : (
+        <button
+          onClick={handleShareClick}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+        >
+          <Share2 className="w-4 h-4" />
+          Bagikan
+        </button>
+      )}
+
+      {open && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute right-0 z-20 mt-2 w-52 rounded-xl bg-white border border-slate-200 shadow-lg p-1.5"
+        >
+          {shareLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <a
+                key={link.name}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-700 transition-colors ${link.bg}`}
+              >
+                <Icon className={`w-4 h-4 ${link.color}`} />
+                {link.name}
+              </a>
+            );
+          })}
+          <button
+            onClick={handleCopy}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-emerald-600" />
+            ) : (
+              <LinkIcon className="w-4 h-4 text-slate-500" />
+            )}
+            {copied ? "Tersalin!" : "Salin Link"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // 2. KARTU VIDEO (versi grid biasa)
 // ---------------------------------------------------------------------------
 function VideoCard({ video, onOpen }) {
@@ -110,50 +289,61 @@ function VideoCard({ video, onOpen }) {
     thumbnail = getYoutubeThumb(video.url);
 
   return (
-    <button
-      onClick={() => onOpen(video)}
-      className="group relative flex flex-col text-left rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-    >
-      <div className="relative aspect-video bg-slate-900 overflow-hidden">
-        {thumbnail ? (
-          <img
-            src={thumbnail}
-            alt={video.title}
-            className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-600 to-blue-500">
-            <Icon className="w-10 h-10 text-white/70" strokeWidth={1.5} />
+    <div className="group relative flex flex-col text-left rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+      <button
+        onClick={() => onOpen(video)}
+        className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      >
+        <div className="relative aspect-video bg-slate-900 overflow-hidden">
+          {thumbnail ? (
+            <img
+              src={thumbnail}
+              alt={video.title}
+              className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-600 to-blue-500">
+              <Icon className="w-10 h-10 text-white/70" strokeWidth={1.5} />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors flex items-center justify-center">
+            <span className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-md scale-90 group-hover:scale-100 transition-transform">
+              <Play className="w-5 h-5 text-indigo-600 fill-indigo-600 ml-0.5" />
+            </span>
           </div>
-        )}
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors flex items-center justify-center">
-          <span className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-md scale-90 group-hover:scale-100 transition-transform">
-            <Play className="w-5 h-5 text-indigo-600 fill-indigo-600 ml-0.5" />
+          <span
+            className={`absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold ${meta.bg} ${meta.color} ring-1 ${meta.ring}`}
+          >
+            <Icon className="w-3 h-3" />
+            {meta.label}
           </span>
         </div>
-        <span
-          className={`absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold ${meta.bg} ${meta.color} ring-1 ${meta.ring}`}
-        >
-          <Icon className="w-3 h-3" />
-          {meta.label}
-        </span>
-      </div>
 
-      <div className="p-4 flex flex-col gap-1.5 flex-1">
-        <span className="text-[11px] font-medium text-indigo-600">
-          {video.category}
-        </span>
-        <h3 className="text-sm font-semibold text-slate-900 leading-snug line-clamp-2">
-          {video.title}
-        </h3>
-        <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 mt-0.5">
-          {video.description}
-        </p>
-        <span className="text-[11px] text-slate-400 mt-auto pt-2">
-          {formatTanggal(video.date)}
-        </span>
+        <div className="p-4 flex flex-col gap-1.5 flex-1">
+          <span className="text-[11px] font-medium text-indigo-600">
+            {video.category}
+          </span>
+          <h3 className="text-sm font-semibold text-slate-900 leading-snug line-clamp-2">
+            {video.title}
+          </h3>
+          <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 mt-0.5">
+            {video.description}
+          </p>
+          <span className="text-[11px] text-slate-400 mt-auto pt-2">
+            {formatTanggal(video.date)}
+          </span>
+        </div>
+      </button>
+
+      {/* Tombol share muncul di pojok kanan atas thumbnail */}
+      <div className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <ShareButton
+          title={video.title}
+          text={`${video.title} — Sahabat Sekolah Dasar SDN 47 Kota Jambi`}
+          url={video.url}
+        />
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -169,52 +359,62 @@ function FeaturedCard({ video, onOpen }) {
     thumbnail = getYoutubeThumb(video.url);
 
   return (
-    <button
-      onClick={() => onOpen(video)}
-      className="group relative flex flex-col sm:flex-row w-full text-left rounded-2xl overflow-hidden bg-white border border-indigo-100 shadow-sm hover:shadow-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-    >
-      <div className="relative sm:w-72 aspect-video sm:aspect-auto shrink-0 bg-slate-900 overflow-hidden">
-        {thumbnail ? (
-          <img
-            src={thumbnail}
-            alt={video.title}
-            className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-600 to-blue-500">
-            <Icon className="w-10 h-10 text-white/70" strokeWidth={1.5} />
+    <div className="group relative flex flex-col sm:flex-row w-full text-left rounded-2xl overflow-hidden bg-white border border-indigo-100 shadow-sm hover:shadow-lg transition-all duration-200">
+      <button
+        onClick={() => onOpen(video)}
+        className="flex flex-col sm:flex-row w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      >
+        <div className="relative sm:w-72 aspect-video sm:aspect-auto shrink-0 bg-slate-900 overflow-hidden">
+          {thumbnail ? (
+            <img
+              src={thumbnail}
+              alt={video.title}
+              className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-600 to-blue-500">
+              <Icon className="w-10 h-10 text-white/70" strokeWidth={1.5} />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors flex items-center justify-center">
+            <span className="w-11 h-11 rounded-full bg-white/90 flex items-center justify-center shadow-md scale-90 group-hover:scale-100 transition-transform">
+              <Play className="w-4.5 h-4.5 text-indigo-600 fill-indigo-600 ml-0.5" />
+            </span>
           </div>
-        )}
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors flex items-center justify-center">
-          <span className="w-11 h-11 rounded-full bg-white/90 flex items-center justify-center shadow-md scale-90 group-hover:scale-100 transition-transform">
-            <Play className="w-4.5 h-4.5 text-indigo-600 fill-indigo-600 ml-0.5" />
-          </span>
         </div>
-      </div>
 
-      <div className="p-5 flex flex-col gap-1.5 flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold ${meta.bg} ${meta.color} ring-1 ${meta.ring}`}
-          >
-            <Icon className="w-3 h-3" />
-            {meta.label}
-          </span>
-          <span className="text-[11px] font-medium text-indigo-600">
-            {video.category}
+        <div className="p-5 flex flex-col gap-1.5 flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold ${meta.bg} ${meta.color} ring-1 ${meta.ring}`}
+            >
+              <Icon className="w-3 h-3" />
+              {meta.label}
+            </span>
+            <span className="text-[11px] font-medium text-indigo-600">
+              {video.category}
+            </span>
+          </div>
+          <h3 className="text-base font-bold text-slate-900 leading-snug line-clamp-2">
+            {video.title}
+          </h3>
+          <p className="text-sm text-slate-500 leading-relaxed line-clamp-2">
+            {video.description}
+          </p>
+          <span className="text-[11px] text-slate-400 mt-auto pt-2">
+            {formatTanggal(video.date)}
           </span>
         </div>
-        <h3 className="text-base font-bold text-slate-900 leading-snug line-clamp-2">
-          {video.title}
-        </h3>
-        <p className="text-sm text-slate-500 leading-relaxed line-clamp-2">
-          {video.description}
-        </p>
-        <span className="text-[11px] text-slate-400 mt-auto pt-2">
-          {formatTanggal(video.date)}
-        </span>
+      </button>
+
+      <div className="absolute top-4 right-4">
+        <ShareButton
+          title={video.title}
+          text={`${video.title} — Sahabat Sekolah Dasar SDN 47 Kota Jambi`}
+          url={video.url}
+        />
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -279,13 +479,21 @@ function VideoModal({ video, onClose }) {
               {video.description}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="shrink-0 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
-            aria-label="Tutup"
-          >
-            <X className="w-4 h-4 text-slate-600" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <ShareButton
+              title={video.title}
+              text={`${video.title} — Sahabat Sekolah Dasar SDN 47 Kota Jambi`}
+              url={video.url}
+              variant="pill"
+            />
+            <button
+              onClick={onClose}
+              className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+              aria-label="Tutup"
+            >
+              <X className="w-4 h-4 text-slate-600" />
+            </button>
+          </div>
         </div>
 
         <div className="px-5 pb-5">
