@@ -70,6 +70,14 @@ function formatTanggal(dateStr) {
   }
 }
 
+// Bangun URL halaman ini yang menyertakan id video sebagai query param,
+// supaya link yang di-share bisa langsung membuka video yang spesifik.
+function buildVideoShareUrl(videoId) {
+  if (typeof window === "undefined") return "";
+  const base = `${window.location.origin}${window.location.pathname}`;
+  return videoId ? `${base}?video=${encodeURIComponent(videoId)}` : base;
+}
+
 const SOURCE_META = {
   youtube: {
     label: "YouTube",
@@ -139,17 +147,34 @@ function XIcon({ className }) {
 // ---------------------------------------------------------------------------
 // 2b. TOMBOL SHARE — native Web Share API dengan fallback menu
 // ---------------------------------------------------------------------------
-function ShareButton({ title, text, url, variant = "icon", className = "" }) {
+function ShareButton({
+  title,
+  text,
+  videoId,
+  variant = "icon",
+  className = "",
+}) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const wrapperRef = useRef(null);
 
-  const shareUrl = cleanUrl(url) || url;
+  // Link yang di-share menyertakan id video sebagai query param, jadi
+  // setiap video punya link unik yang langsung membuka video itu.
+  const shareUrl = buildVideoShareUrl(videoId);
   const encodedUrl = encodeURIComponent(shareUrl);
   const encodedText = encodeURIComponent(text || title || "");
 
+  // Deteksi mobile: di HP kita pakai native share sheet (biasanya sudah
+  // mencantumkan WhatsApp/Instagram/dll yang terinstall). Di desktop/Mac,
+  // native share sheet cuma isinya app macOS (AirDrop, Mail, dst) dan TIDAK
+  // ada WhatsApp Web/Desktop, jadi di desktop kita pakai dropdown custom.
+  const isMobile =
+    typeof navigator !== "undefined" &&
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const canNativeShare =
-    typeof navigator !== "undefined" && typeof navigator.share === "function";
+    isMobile &&
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function";
 
   useEffect(() => {
     if (!open) return;
@@ -340,7 +365,7 @@ function VideoCard({ video, onOpen }) {
         <ShareButton
           title={video.title}
           text={`${video.title} — Sahabat Sekolah Dasar SDN 47 Kota Jambi`}
-          url={video.url}
+          videoId={video.id}
         />
       </div>
     </div>
@@ -411,7 +436,7 @@ function FeaturedCard({ video, onOpen }) {
         <ShareButton
           title={video.title}
           text={`${video.title} — Sahabat Sekolah Dasar SDN 47 Kota Jambi`}
-          url={video.url}
+          videoId={video.id}
         />
       </div>
     </div>
@@ -483,7 +508,7 @@ function VideoModal({ video, onClose }) {
             <ShareButton
               title={video.title}
               text={`${video.title} — Sahabat Sekolah Dasar SDN 47 Kota Jambi`}
-              url={video.url}
+              videoId={video.id}
               variant="pill"
             />
             <button
@@ -567,6 +592,46 @@ export default function Sahabat() {
     };
   }, []);
 
+  // Kalau halaman diakses lewat link share (ada ?video=ID), otomatis buka
+  // modal video itu setelah data selesai dimuat.
+  useEffect(() => {
+    if (loading || videos.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const videoId = params.get("video");
+    if (videoId) {
+      const found = videos.find((v) => v.id === videoId);
+      if (found) setSelected(found);
+    }
+  }, [loading, videos]);
+
+  // Dengarkan tombol back/forward browser supaya modal ikut nutup/buka.
+  useEffect(() => {
+    function handlePopState() {
+      const params = new URLSearchParams(window.location.search);
+      const videoId = params.get("video");
+      if (!videoId) {
+        setSelected(null);
+      } else {
+        const found = videos.find((v) => v.id === videoId);
+        setSelected(found || null);
+      }
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [videos]);
+
+  function handleOpenVideo(video) {
+    setSelected(video);
+    const url = buildVideoShareUrl(video.id);
+    window.history.pushState({ videoId: video.id }, "", url);
+  }
+
+  function handleCloseVideo() {
+    setSelected(null);
+    const base = `${window.location.origin}${window.location.pathname}`;
+    window.history.pushState({}, "", base);
+  }
+
   const latestVideo = useMemo(() => {
     if (videos.length === 0) return null;
     return [...videos].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
@@ -646,7 +711,7 @@ export default function Sahabat() {
               Postingan Terbaru
             </h2>
           </div>
-          <FeaturedCard video={latestVideo} onOpen={setSelected} />
+          <FeaturedCard video={latestVideo} onOpen={handleOpenVideo} />
         </section>
       )}
 
@@ -738,14 +803,18 @@ export default function Sahabat() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map((video) => (
-                <VideoCard key={video.id} video={video} onOpen={setSelected} />
+                <VideoCard
+                  key={video.id}
+                  video={video}
+                  onOpen={handleOpenVideo}
+                />
               ))}
             </div>
           )}
         </main>
       )}
 
-      <VideoModal video={selected} onClose={() => setSelected(null)} />
+      <VideoModal video={selected} onClose={handleCloseVideo} />
     </div>
   );
 }

@@ -22,6 +22,7 @@ import TeacherStaff from "./pages/Teachers-Staff";
 import NewsDetail from "./pages/NewsDetail";
 import VideosPage from "./pages/Videos";
 import Sahabat from "./pages/Sahabat";
+import AdminTeachers from "./pages/admin/AdminTeachers";
 
 // Komponen Otomatis Scroll ke Atas saat Pindah Page
 function ScrollToTop() {
@@ -66,6 +67,7 @@ export default function App() {
 
         {/* KELOMPOK 2: Portal Admin (Bebas dari Navbar & Footer Sekolah) */}
         <Route path="/admin/*" element={<AdminRoutes />} />
+        <Route path="/admin/adminteachers" element={<AdminTeachers />} />
       </Routes>
     </Router>
   );

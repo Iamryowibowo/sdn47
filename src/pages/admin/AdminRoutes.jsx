@@ -11,6 +11,8 @@ import AdminGallery from "./AdminGallery";
 import AdminContent from "./AdminContent";
 import AdminVideo from "./AdminVideo";
 import AdminSahabatSD from "./AdminSahabatSD";
+import { Rotate3D } from "lucide-react";
+import AdminTeachers from "./AdminTeachers";
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(null);
@@ -81,6 +83,15 @@ export default function AdminRoutes() {
           element={
             <ProtectedRoute>
               <AdminSahabatSD />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="adminteachers"
+          element={
+            <ProtectedRoute>
+              <AdminTeachers />
             </ProtectedRoute>
           }
         />

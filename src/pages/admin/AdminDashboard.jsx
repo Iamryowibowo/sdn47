@@ -86,7 +86,7 @@ export default function AdminDashboard() {
       await signOut(auth);
       navigate("/admin");
     } catch {
-      alert("Gagal keluar, coba lagi.");
+      alert("Gagal keluar , coba lagi ndro .");
     }
   };
 
@@ -147,6 +147,13 @@ export default function AdminDashboard() {
             className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all"
           >
             <span className="text-sm">Informasi Sekolah</span>
+          </Link>
+
+          <Link
+            to="/admin/adminteachers"
+            className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all"
+          >
+            <span className="text-sm">Kelola Guru dan Staff</span>
           </Link>
         </nav>
 
