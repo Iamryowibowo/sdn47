@@ -121,27 +121,30 @@ export default function TeacherStaff() {
               key={staff.id}
               className="gsap-teacher-card bg-white border border-slate-200/80 rounded-[28px] overflow-hidden shadow-sm hover:shadow-md transition-all group flex flex-col justify-between"
             >
-              <div className="h-64 bg-slate-100 overflow-hidden relative">
-                <div className="absolute inset-0 bg-linear-to-t from-slate-950/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+              {/* Rasio 3:4 + object-top supaya kepala tidak terpotong */}
+              <div className="aspect-3/4 bg-slate-100 overflow-hidden relative">
+                <div className="absolute inset-0 bg-linear-to-t from-slate-950/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
 
                 <img
                   src={staff.imageUrl}
                   alt={staff.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                  loading="lazy"
+                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500 ease-out origin-top"
                 />
 
-                <span className="absolute top-4 left-4 z-20 text-[9px] font-black tracking-widest bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-slate-800 uppercase shadow-sm">
+                {/* Badge di bawah foto supaya tidak menutupi wajah */}
+                <span className="absolute bottom-3 left-3 z-20 text-[9px] font-black tracking-widest bg-slate-900/80 backdrop-blur-sm px-2.5 py-1 rounded-md text-white uppercase shadow-sm">
                   {staff.category === "pimpinan"
-                    ? "👑 Core"
+                    ? "👑 Pimpinan"
                     : staff.category === "guru"
-                      ? "📖 Educator"
-                      : "⚙️ Ops"}
+                      ? "📖 Guru"
+                      : "⚙️ Tenaga Kependidikan"}
                 </span>
               </div>
 
-              <div className="p-6 space-y-4 grow flex flex-col justify-between bg-white">
+              <div className="p-5 grow flex flex-col bg-white">
                 <div className="space-y-1">
-                  <h3 className="font-black text-slate-950 text-base leading-tight group-hover:text-blue-600 transition-colors line-clamp-1">
+                  <h3 className="font-black text-slate-950 text-base leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
                     {staff.name}
                   </h3>
                   <p className="text-xs text-blue-600 font-bold tracking-wide uppercase">
@@ -149,13 +152,16 @@ export default function TeacherStaff() {
                   </p>
                 </div>
 
-                {staff.quote && (
-                  <div className="pt-3 border-t border-slate-100">
-                    <p className="text-slate-500 text-xs font-light italic leading-relaxed line-clamp-2">
-                      "{staff.quote}"
-                    </p>
+                {/* Selalu di dasar kartu, jadi garis pemisah sejajar antar kartu */}
+                <div className="mt-auto pt-4">
+                  <div className="pt-3 border-t border-slate-100 min-h-14">
+                    {staff.quote && (
+                      <p className="text-slate-500 text-xs font-light italic leading-relaxed line-clamp-3">
+                        "{staff.quote}"
+                      </p>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           ))}
