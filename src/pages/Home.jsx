@@ -267,7 +267,7 @@ export default function Home() {
                 </p>
                 <p className="text-slate-700 font-medium text-base sm:text-lg max-w-xl leading-relaxed">
                   <span className="italic font-semibold text-slate-900">
-                    "Generasi Edukatif, Mandiri, Inovatif, Literatif, Adaptif,
+                    "Generasi Edukatif, Mandiri, Inovatif, Literatif, Agamais,
                     dan Gemar Berprestasi."
                   </span>
                 </p>
