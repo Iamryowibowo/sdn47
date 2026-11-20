@@ -6,6 +6,63 @@ import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 
 gsap.registerPlugin(useGSAP);
 
+// =========================================================
+// PENGURUTAN
+// - Pimpinan : Kepala Sekolah dulu, sisanya sesuai abjad
+// - Guru     : Wali kelas urut kelas (IA, IB, IIA, ... VIB), lalu guru
+//              mapel/lainnya sesuai abjad
+// - Staff    : sesuai abjad
+// =========================================================
+const CATEGORY_ORDER = { pimpinan: 0, guru: 1, staff: 2 };
+const collator = new Intl.Collator("id", { sensitivity: "base" });
+
+const ROMAN = { I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6 };
+
+// Baca kelas dari jabatan, contoh: "Wali Kelas VI A", "Guru Kelas 3B", "Kelas IIA"
+const getClassInfo = (role = "") => {
+  const m = role.match(
+    /kelas\s*(VI|IV|III|II|I|V|[1-6])\s*-?\s*([A-Za-z])?(?![A-Za-z])/i,
+  );
+  if (!m) return null;
+  const raw = m[1].toUpperCase();
+  const grade = ROMAN[raw] ?? parseInt(raw, 10);
+  const section = (m[2] || "").toUpperCase();
+  return { grade, section };
+};
+
+const isKepalaSekolah = (role = "") =>
+  /kepala\s+sekolah/i.test(role) && !/wakil/i.test(role);
+
+const sortStaff = (list) =>
+  [...list].sort((a, b) => {
+    // 1. urutan kategori (berguna saat filter "Semua Personel")
+    const catDiff =
+      (CATEGORY_ORDER[a.category] ?? 99) - (CATEGORY_ORDER[b.category] ?? 99);
+    if (catDiff !== 0) return catDiff;
+
+    // 2. aturan di dalam kategori
+    if (a.category === "pimpinan") {
+      const ka = isKepalaSekolah(a.role) ? 0 : 1;
+      const kb = isKepalaSekolah(b.role) ? 0 : 1;
+      if (ka !== kb) return ka - kb;
+    }
+
+    if (a.category === "guru") {
+      const ca = getClassInfo(a.role);
+      const cb = getClassInfo(b.role);
+      if (ca && cb) {
+        if (ca.grade !== cb.grade) return ca.grade - cb.grade;
+        const secDiff = collator.compare(ca.section, cb.section);
+        if (secDiff !== 0) return secDiff;
+      } else if (ca || cb) {
+        return ca ? -1 : 1; // wali kelas di atas, guru mapel di bawah
+      }
+    }
+
+    // 3. sisanya sesuai abjad nama
+    return collator.compare(a.name || "", b.name || "");
+  });
+
 export default function TeacherStaff() {
   const containerRef = useRef();
   const [activeFilter, setActiveFilter] = useState("all");
@@ -26,10 +83,11 @@ export default function TeacherStaff() {
     return unsub;
   }, []);
 
-  const filteredStaff =
+  const filteredStaff = sortStaff(
     activeFilter === "all"
       ? staffList
-      : staffList.filter((item) => item.category === activeFilter);
+      : staffList.filter((item) => item.category === activeFilter),
+  );
 
   // Animasi header: sekali saat halaman dibuka
   useGSAP(
